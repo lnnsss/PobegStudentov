@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { RunnerEngine } from './game/runnerEngine.js';
+import {
+  fetchLeaderboard,
+  readLocalLeaderboard,
+  readPlayerName,
+  upsertLeaderboardRecord,
+  writePlayerName,
+} from './services/leaderboardService.js';
 
 const initialHud = {
   distance: 0,
@@ -12,53 +19,9 @@ const initialHud = {
 };
 
 const RESUME_AFTER_ROTATE_MS = 2500;
-const PLAYER_NAME_KEY = 'playlist-studentov-player-name';
-const LEADERBOARD_KEY = 'playlist-studentov-leaderboard';
 
 function formatScore(value, length = 7) {
   return String(Math.max(0, Math.floor(value))).padStart(length, '0');
-}
-
-function readPlayerName() {
-  return localStorage.getItem(PLAYER_NAME_KEY) || '';
-}
-
-function writePlayerName(name) {
-  localStorage.setItem(PLAYER_NAME_KEY, name);
-}
-
-function readLeaderboard() {
-  try {
-    const records = JSON.parse(localStorage.getItem(LEADERBOARD_KEY) || '[]');
-    return Array.isArray(records) ? records : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeLeaderboard(records) {
-  localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(records));
-}
-
-function upsertLeaderboardRecord(name, score) {
-  if (!name) return readLeaderboard();
-
-  const normalizedScore = Math.max(0, Math.floor(score));
-  const records = readLeaderboard();
-  const existing = records.find((record) => record.name === name);
-
-  if (existing) {
-    existing.score = Math.max(existing.score || 0, normalizedScore);
-  } else {
-    records.push({ name, score: normalizedScore });
-  }
-
-  const sorted = records
-    .filter((record) => record.name && Number.isFinite(record.score))
-    .sort((a, b) => b.score - a.score);
-
-  writeLeaderboard(sorted);
-  return sorted;
 }
 
 export default function App() {
@@ -75,7 +38,7 @@ export default function App() {
   const [damagedHeartIndex, setDamagedHeartIndex] = useState(-1);
   const [playerName, setPlayerName] = useState(() => readPlayerName());
   const [nameInput, setNameInput] = useState(() => readPlayerName());
-  const [leaderboard, setLeaderboard] = useState(() => readLeaderboard());
+  const [leaderboard, setLeaderboard] = useState(() => readLocalLeaderboard());
 
   useEffect(() => {
     playerNameRef.current = playerName;
@@ -96,7 +59,7 @@ export default function App() {
       });
       if (nextHud.gameOver) {
         if (playerNameRef.current) {
-          setLeaderboard(upsertLeaderboardRecord(playerNameRef.current, nextHud.distance || 0));
+          upsertLeaderboardRecord(playerNameRef.current, nextHud.distance || 0, nextHud.stars || 0).then(setLeaderboard);
         }
         setScreen('gameOver');
       }
@@ -141,7 +104,7 @@ export default function App() {
   }, []);
 
   const showRecords = useCallback(() => {
-    setLeaderboard(readLeaderboard());
+    fetchLeaderboard().then(setLeaderboard);
     setScreen('records');
   }, []);
 
@@ -175,9 +138,9 @@ export default function App() {
       playerNameRef.current = cleanName;
       setPlayerName(cleanName);
       setNameInput(cleanName);
-      setLeaderboard(upsertLeaderboardRecord(cleanName, hud.best));
+      upsertLeaderboardRecord(cleanName, hud.best, hud.stars).then(setLeaderboard);
     },
-    [hud.best, nameInput],
+    [hud.best, hud.stars, nameInput],
   );
 
   useEffect(() => {
