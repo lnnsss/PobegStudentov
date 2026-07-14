@@ -871,11 +871,11 @@ button {
   }
 
   .score-copy {
-    gap: 6px;
+    gap: 4px;
   }
 
   .score-line {
-    font-size: 24px;
+    font-size: 17px;
   }
 
   .pause-button {
@@ -943,20 +943,57 @@ button {
   }
 
   .result-panel {
-    width: min(430px, 82vw);
-    gap: 10px;
-    padding: 28px 26px 24px;
+    width: min(430px, calc(100% - 24px));
+    max-height: calc(100svh - 28px - var(--safe-bottom));
+    gap: 8px;
+    padding: 24px 22px 20px;
+    overflow: auto;
+  }
+
+  .result-panel h1 {
+    margin-top: 6px;
+    font-size: clamp(22px, 6svh, 30px);
+  }
+
+  .result-panel .result-divider {
+    width: min(280px, 76%);
+    border-top-width: 3px;
+  }
+
+  .result-label {
+    font-size: clamp(12px, 3.2svh, 16px);
+  }
+
+  .result-score {
+    font-size: clamp(24px, 7svh, 34px);
+  }
+
+  .result-best {
+    font-size: clamp(18px, 5svh, 25px);
   }
 
   .result-actions {
+    width: min(330px, 100%);
     gap: 10px;
+    margin-top: 2px;
   }
 
   .result-star {
-    top: -34px;
-    width: 66px;
-    height: 66px;
-    font-size: 36px;
+    top: -26px;
+    width: 54px;
+    height: 54px;
+    font-size: 30px;
+  }
+
+  .result-actions .game-button {
+    min-height: 38px;
+    padding: 7px 10px;
+    font-size: clamp(12px, 3.4svh, 15px);
+  }
+
+  .result-actions .button-icon {
+    width: 18px;
+    height: 18px;
   }
 
   .pause-panel {
@@ -1053,8 +1090,16 @@ button {
   }
 
   .hud-stack {
-    transform: scale(0.86);
+    transform: scale(0.62);
     transform-origin: top left;
+  }
+
+  .score-copy {
+    gap: 3px;
+  }
+
+  .score-line {
+    font-size: 15px;
   }
 
   .pause-button {
@@ -1063,7 +1108,44 @@ button {
   }
 
   .result-panel {
-    transform: scale(0.86);
+    width: min(380px, calc(100% - 20px));
+    max-height: calc(100svh - 20px - var(--safe-bottom));
+    gap: 6px;
+    padding: 20px 16px 14px;
+    transform: none;
+  }
+
+  .result-panel h1 {
+    font-size: clamp(19px, 6.2svh, 24px);
+  }
+
+  .result-label {
+    font-size: clamp(10px, 3.4svh, 13px);
+  }
+
+  .result-score {
+    font-size: clamp(21px, 7svh, 28px);
+  }
+
+  .result-best {
+    font-size: clamp(16px, 5svh, 20px);
+  }
+
+  .result-actions {
+    gap: 7px;
+  }
+
+  .result-actions .game-button {
+    min-height: 32px;
+    padding: 6px 8px;
+    font-size: clamp(11px, 3.4svh, 13px);
+  }
+
+  .result-star {
+    top: -20px;
+    width: 44px;
+    height: 44px;
+    font-size: 25px;
   }
 
   .pause-panel {
