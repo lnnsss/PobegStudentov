@@ -368,6 +368,13 @@ button {
   padding-block: clamp(28px, 5vw, 46px);
 }
 
+.settings-panel {
+  gap: 20px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(83, 170, 255, 0.16), transparent 42%),
+    rgba(245, 251, 255, 0.96);
+}
+
 .game-over-overlay {
   background: rgba(8, 19, 34, 0.6);
 }
@@ -571,6 +578,16 @@ button {
   gap: 14px;
 }
 
+.sound-toggle {
+  color: #14243a !important;
+  background: linear-gradient(180deg, #f9fdff 0%, #dfeaf7 100%) !important;
+}
+
+.sound-toggle.active {
+  color: #ffffff !important;
+  background: linear-gradient(180deg, #4da1ff 0%, #1269ea 100%) !important;
+}
+
 .modal-panel button.secondary {
   color: #14243a;
   background: #f5fbff;
@@ -615,6 +632,15 @@ button {
 
 .name-panel input:focus {
   border-color: #1975ef;
+}
+
+.form-error {
+  max-width: 310px;
+  color: #b72135;
+  font-family: "Courier New", ui-monospace, monospace;
+  font-size: clamp(14px, 2.2vw, 18px);
+  font-weight: 900;
+  line-height: 1.2;
 }
 
 .modal-panel button:disabled {

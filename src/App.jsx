@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { gameAudio } from './game/audioManager.js';
 import { RunnerEngine } from './game/runnerEngine.js';
 import {
   fetchLeaderboard,
+  isPlayerNameAvailable,
   readLocalLeaderboard,
   readPlayerName,
   upsertLeaderboardRecord,
@@ -24,6 +26,14 @@ function formatScore(value, length = 7) {
   return String(Math.max(0, Math.floor(value))).padStart(length, '0');
 }
 
+function normalizePlayerName(value) {
+  return value
+    .trim()
+    .replace(/\s+/g, ' ')
+    .replace(/[^\p{L}\p{N}_ -]/gu, '')
+    .slice(0, 16);
+}
+
 export default function App() {
   const canvasRef = useRef(null);
   const engineRef = useRef(null);
@@ -38,7 +48,10 @@ export default function App() {
   const [damagedHeartIndex, setDamagedHeartIndex] = useState(-1);
   const [playerName, setPlayerName] = useState(() => readPlayerName());
   const [nameInput, setNameInput] = useState(() => readPlayerName());
+  const [nameError, setNameError] = useState('');
+  const [isCheckingName, setIsCheckingName] = useState(false);
   const [leaderboard, setLeaderboard] = useState(() => readLocalLeaderboard());
+  const [soundEnabled, setSoundEnabled] = useState(() => gameAudio.isEnabled());
 
   useEffect(() => {
     playerNameRef.current = playerName;
@@ -46,24 +59,31 @@ export default function App() {
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    const engine = new RunnerEngine(canvas, (nextHud) => {
-      setHud((current) => {
-        const next = { ...current, ...nextHud };
-        if (next.lives < previousLivesRef.current) {
-          window.clearTimeout(damageTimerRef.current);
-          setDamagedHeartIndex(next.lives);
-          damageTimerRef.current = window.setTimeout(() => setDamagedHeartIndex(-1), 520);
+    const engine = new RunnerEngine(
+      canvas,
+      (nextHud) => {
+        setHud((current) => {
+          const next = { ...current, ...nextHud };
+          if (next.lives < previousLivesRef.current) {
+            window.clearTimeout(damageTimerRef.current);
+            setDamagedHeartIndex(next.lives);
+            damageTimerRef.current = window.setTimeout(() => setDamagedHeartIndex(-1), 520);
+          }
+          previousLivesRef.current = next.lives;
+          return next;
+        });
+        if (nextHud.gameOver) {
+          gameAudio.stopMusic();
+          if (playerNameRef.current) {
+            upsertLeaderboardRecord(playerNameRef.current, nextHud.distance || 0, nextHud.stars || 0).then(setLeaderboard);
+          }
+          setScreen('gameOver');
         }
-        previousLivesRef.current = next.lives;
-        return next;
-      });
-      if (nextHud.gameOver) {
-        if (playerNameRef.current) {
-          upsertLeaderboardRecord(playerNameRef.current, nextHud.distance || 0, nextHud.stars || 0).then(setLeaderboard);
-        }
-        setScreen('gameOver');
-      }
-    });
+      },
+      (event) => {
+        gameAudio.play(event.type);
+      },
+    );
 
     engineRef.current = engine;
     engine.start();
@@ -77,11 +97,15 @@ export default function App() {
   }, []);
 
   const jump = useCallback(() => {
+    gameAudio.unlock();
     engineRef.current?.jump();
   }, []);
 
   const startGame = useCallback(() => {
     if (!playerNameRef.current) return;
+    gameAudio.unlock();
+    gameAudio.play('button');
+    gameAudio.startMusic();
     autoPausedByRotateRef.current = false;
     window.clearTimeout(resumeTimerRef.current);
     window.clearTimeout(damageTimerRef.current);
@@ -93,6 +117,8 @@ export default function App() {
   }, []);
 
   const goToMenu = useCallback(() => {
+    gameAudio.play('button');
+    gameAudio.stopMusic();
     autoPausedByRotateRef.current = false;
     window.clearTimeout(resumeTimerRef.current);
     window.clearTimeout(damageTimerRef.current);
@@ -104,19 +130,28 @@ export default function App() {
   }, []);
 
   const showRecords = useCallback(() => {
+    gameAudio.play('button');
     fetchLeaderboard().then(setLeaderboard);
     setScreen('records');
   }, []);
 
   const togglePause = useCallback(() => {
     if (screen !== 'playing') return;
+    gameAudio.unlock();
+    gameAudio.play('button');
     autoPausedByRotateRef.current = false;
     window.clearTimeout(resumeTimerRef.current);
     setResumeCountdown(0);
+    const nextPaused = !hud.paused;
     engineRef.current?.togglePause();
-  }, [screen]);
+    if (nextPaused) gameAudio.stopMusic();
+    else gameAudio.startMusic();
+  }, [hud.paused, screen]);
 
   const restart = useCallback(() => {
+    gameAudio.unlock();
+    gameAudio.play('button');
+    gameAudio.startMusic();
     autoPausedByRotateRef.current = false;
     window.clearTimeout(resumeTimerRef.current);
     window.clearTimeout(damageTimerRef.current);
@@ -127,17 +162,49 @@ export default function App() {
     setScreen('playing');
   }, []);
 
+  const toggleSound = useCallback(() => {
+    const nextEnabled = !soundEnabled;
+    gameAudio.setEnabled(nextEnabled);
+    setSoundEnabled(nextEnabled);
+    if (nextEnabled) {
+      gameAudio.unlock();
+      gameAudio.play('button');
+      if (screen === 'playing' && !hud.paused && !hud.gameOver) gameAudio.startMusic();
+    }
+  }, [hud.gameOver, hud.paused, screen, soundEnabled]);
+
+  const showSettings = useCallback(() => {
+    gameAudio.play('button');
+    setScreen('settings');
+  }, []);
+
   const submitName = useCallback(
-    (event) => {
+    async (event) => {
       event.preventDefault();
 
-      const cleanName = nameInput.trim().replace(/\s+/g, ' ').slice(0, 16);
-      if (!cleanName) return;
+      const cleanName = normalizePlayerName(nameInput);
+      setNameError('');
+      if (!cleanName) {
+        setNameError('Введите никнейм.');
+        return;
+      }
+
+      setIsCheckingName(true);
+      const available = await isPlayerNameAvailable(cleanName, playerNameRef.current);
+      setIsCheckingName(false);
+
+      if (!available) {
+        setNameError('Такой ник уже занят. Возьмите другой.');
+        setNameInput(cleanName);
+        return;
+      }
 
       writePlayerName(cleanName);
       playerNameRef.current = cleanName;
       setPlayerName(cleanName);
       setNameInput(cleanName);
+      gameAudio.unlock();
+      gameAudio.play('button');
       upsertLeaderboardRecord(cleanName, hud.best, hud.stars).then(setLeaderboard);
     },
     [hud.best, hud.stars, nameInput],
@@ -159,6 +226,7 @@ export default function App() {
         if (!hud.paused) {
           autoPausedByRotateRef.current = true;
           engineRef.current?.setPaused(true);
+          gameAudio.stopMusic();
         }
         return;
       }
@@ -170,6 +238,7 @@ export default function App() {
         autoPausedByRotateRef.current = false;
         setResumeCountdown(0);
         engineRef.current?.setPaused(false);
+        gameAudio.startMusic();
       }, RESUME_AFTER_ROTATE_MS);
     };
 
@@ -236,7 +305,7 @@ export default function App() {
       <section className="game-frame" aria-label="Пиксельный раннер">
         <canvas ref={canvasRef} className="game-canvas" width="1280" height="720" />
 
-        {screen !== 'menu' && screen !== 'records' && (
+        {screen !== 'menu' && screen !== 'records' && screen !== 'settings' && (
           <div className="hud-stack" aria-live="polite">
             <span className="life-row" aria-label={`Жизни: ${hud.lives}`}>
               {Array.from({ length: 3 }, (_, index) => {
@@ -271,7 +340,7 @@ export default function App() {
           </div>
         )}
 
-        {screen !== 'menu' && screen !== 'records' && (
+        {screen !== 'menu' && screen !== 'records' && screen !== 'settings' && (
           <button
             type="button"
             className="pause-button"
@@ -304,7 +373,7 @@ export default function App() {
                 <span className="button-icon play-mark" />
                 Играть
               </button>
-              <button type="button" className="game-button">
+              <button type="button" className="game-button" onClick={showSettings}>
                 <span className="button-icon gear-mark" />
                 Настройки
               </button>
@@ -324,6 +393,9 @@ export default function App() {
                 <p>Продолжаем через {resumeCountdown}</p>
               ) : (
                 <div className="pause-actions">
+                  <button type="button" className={soundEnabled ? 'sound-toggle active' : 'sound-toggle'} onClick={toggleSound}>
+                    Звук: {soundEnabled ? 'Вкл' : 'Выкл'}
+                  </button>
                   <button type="button" onClick={togglePause}>
                     Продолжить
                   </button>
@@ -332,6 +404,20 @@ export default function App() {
                   </button>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {screen === 'settings' && (
+          <div className="center-overlay">
+            <div className="modal-panel settings-panel">
+              <h1>Настройки</h1>
+              <button type="button" className={soundEnabled ? 'sound-toggle active' : 'sound-toggle'} onClick={toggleSound}>
+                Звук: {soundEnabled ? 'Вкл' : 'Выкл'}
+              </button>
+              <button type="button" className="secondary" onClick={goToMenu}>
+                В меню
+              </button>
             </div>
           </div>
         )}
@@ -393,11 +479,15 @@ export default function App() {
                 maxLength="16"
                 placeholder="Никнейм"
                 value={nameInput}
-                onChange={(event) => setNameInput(event.target.value)}
+                onChange={(event) => {
+                  setNameError('');
+                  setNameInput(event.target.value);
+                }}
                 aria-label="Никнейм"
               />
-              <button type="submit" disabled={!nameInput.trim()}>
-                Готово
+              {nameError && <p className="form-error">{nameError}</p>}
+              <button type="submit" disabled={!nameInput.trim() || isCheckingName}>
+                {isCheckingName ? 'Проверяем...' : 'Готово'}
               </button>
             </form>
           </div>

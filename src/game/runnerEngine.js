@@ -62,10 +62,11 @@ function coverRect(sourceWidth, sourceHeight, targetWidth, targetHeight) {
 }
 
 export class RunnerEngine {
-  constructor(canvas, onHudChange) {
+  constructor(canvas, onHudChange, onGameEvent = () => {}) {
     this.canvas = canvas;
     this.context = canvas.getContext('2d');
     this.onHudChange = onHudChange;
+    this.onGameEvent = onGameEvent;
     this.animationFrame = 0;
     this.lastTime = 0;
     this.assets = null;
@@ -121,6 +122,7 @@ export class RunnerEngine {
     this.frameTime = 0;
     this.frameIndex = 0;
     this.lastTime = 0;
+    this.recordAnnounced = false;
   }
 
   restart() {
@@ -148,6 +150,7 @@ export class RunnerEngine {
     this.player.velocityY = JUMP_VELOCITY;
     this.player.grounded = false;
     this.player.jumpsRemaining -= 1;
+    this.emit('jump');
   }
 
   togglePause() {
@@ -183,6 +186,10 @@ export class RunnerEngine {
     this.distance += (this.speed * delta) / 18;
     this.speed = Math.min(MAX_SPEED, START_SPEED + this.distance * 1.35);
     this.roadOffset = (this.roadOffset + this.visualSpeed * delta) % LOGICAL_WIDTH;
+    if (!this.recordAnnounced && this.best > 0 && this.distance > this.best) {
+      this.recordAnnounced = true;
+      this.emit('record');
+    }
 
     this.updatePlayer(delta);
     this.updateAnimation(delta);
@@ -438,16 +445,20 @@ export class RunnerEngine {
       if (object.type === 'star') {
         object.collected = true;
         this.stars += 1;
+        this.emit('star');
       } else if (object.type === 'teacher') {
         object.hit = true;
+        this.emit('death');
         this.endRun();
       } else if (this.invulnerableTimer <= 0) {
         object.collected = true;
         this.lives -= 1;
 
         if (this.lives <= 0) {
+          this.emit('death');
           this.endRun();
         } else {
+          this.emit('damage');
           this.invulnerableTimer = DAMAGE_INVULNERABLE_TIME;
         }
       }
@@ -475,6 +486,10 @@ export class RunnerEngine {
       gameOver: this.gameOver,
       ...extra,
     });
+  }
+
+  emit(type, detail = {}) {
+    this.onGameEvent({ type, ...detail });
   }
 
   draw() {

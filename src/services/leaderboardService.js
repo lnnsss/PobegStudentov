@@ -76,6 +76,31 @@ export async function fetchLeaderboard() {
   return sortRecords(data || []);
 }
 
+export async function isPlayerNameAvailable(name, currentName = '') {
+  const cleanName = String(name || '').trim();
+  const cleanCurrentName = String(currentName || '').trim();
+
+  if (!cleanName) return false;
+  if (cleanCurrentName && cleanName.toLocaleLowerCase() === cleanCurrentName.toLocaleLowerCase()) return true;
+
+  if (!isSupabaseConfigured || !supabase) {
+    return !readLocalLeaderboard().some((record) => record.name.toLocaleLowerCase() === cleanName.toLocaleLowerCase());
+  }
+
+  const { data, error } = await supabase
+    .from('leaderboard_scores')
+    .select('player_name')
+    .ilike('player_name', cleanName)
+    .limit(1);
+
+  if (error) {
+    console.warn('Supabase nickname check failed, checking local records.', error.message);
+    return !readLocalLeaderboard().some((record) => record.name.toLocaleLowerCase() === cleanName.toLocaleLowerCase());
+  }
+
+  return !data?.length;
+}
+
 export async function upsertLeaderboardRecord(name, score, stars = 0) {
   const localRecords = upsertLocalLeaderboardRecord(name, score, stars);
 
