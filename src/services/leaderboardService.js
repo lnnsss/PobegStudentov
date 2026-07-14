@@ -12,10 +12,22 @@ function normalizeRecord(record) {
 }
 
 function sortRecords(records) {
-  return records
+  const recordsByName = new Map();
+
+  records
     .map(normalizeRecord)
     .filter((record) => record.name)
-    .sort((a, b) => b.score - a.score || b.stars - a.stars || a.name.localeCompare(b.name));
+    .forEach((record) => {
+      const key = record.name.toLocaleLowerCase();
+      const existing = recordsByName.get(key);
+      if (!existing || record.score > existing.score || (record.score === existing.score && record.stars > existing.stars)) {
+        recordsByName.set(key, record);
+      }
+    });
+
+  return Array.from(recordsByName.values()).sort(
+    (a, b) => b.score - a.score || b.stars - a.stars || a.name.localeCompare(b.name),
+  );
 }
 
 export function readPlayerName() {
@@ -73,7 +85,7 @@ export async function fetchLeaderboard() {
     return readLocalLeaderboard();
   }
 
-  return sortRecords(data || []);
+  return sortRecords([...(data || []), ...readLocalLeaderboard()]);
 }
 
 export async function isPlayerNameAvailable(name, currentName = '') {
@@ -107,19 +119,28 @@ export async function upsertLeaderboardRecord(name, score, stars = 0) {
   if (!isSupabaseConfigured || !supabase || !name) return localRecords;
 
   const normalized = normalizeRecord({ name, score, stars });
-  const { error } = await supabase.from('leaderboard_scores').upsert(
-    {
-      player_name: normalized.name,
-      score: normalized.score,
-      stars: normalized.stars,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: 'player_name' },
-  );
+  const { error } = await supabase.rpc('submit_leaderboard_score', {
+    input_player_name: normalized.name,
+    input_score: normalized.score,
+    input_stars: normalized.stars,
+  });
 
   if (error) {
-    console.warn('Supabase leaderboard upsert failed, keeping local record.', error.message);
-    return localRecords;
+    console.warn('Supabase leaderboard RPC failed, trying direct upsert.', error.message);
+    const { error: upsertError } = await supabase.from('leaderboard_scores').upsert(
+      {
+        player_name: normalized.name,
+        score: normalized.score,
+        stars: normalized.stars,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'player_name' },
+    );
+
+    if (upsertError) {
+      console.warn('Supabase leaderboard upsert failed, keeping local record.', upsertError.message);
+      return localRecords;
+    }
   }
 
   return fetchLeaderboard();

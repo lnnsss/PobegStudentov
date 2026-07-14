@@ -859,7 +859,7 @@ button {
     top: 14px;
     left: 18px;
     gap: 4px;
-    transform: scale(0.78);
+    transform: scale(0.68);
     transform-origin: top left;
   }
 
@@ -868,7 +868,7 @@ button {
   }
 
   .score-line {
-    font-size: 30px;
+    font-size: 24px;
   }
 
   .pause-button {

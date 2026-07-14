@@ -43,6 +43,7 @@ export default function App() {
   const damageTimerRef = useRef(0);
   const previousLivesRef = useRef(initialHud.lives);
   const playerNameRef = useRef('');
+  const hasSyncedStoredRecordRef = useRef(false);
   const [hud, setHud] = useState(initialHud);
   const [screen, setScreen] = useState('menu');
   const [resumeCountdown, setResumeCountdown] = useState(0);
@@ -61,6 +62,17 @@ export default function App() {
   useEffect(() => {
     playerNameRef.current = playerName;
   }, [playerName]);
+
+  useEffect(() => {
+    if (!hud.ready || !playerName || hasSyncedStoredRecordRef.current) return;
+
+    hasSyncedStoredRecordRef.current = true;
+    if (hud.best > 0) {
+      upsertLeaderboardRecord(playerName, hud.best, hud.stars).then(setLeaderboard);
+    } else {
+      fetchLeaderboard().then(setLeaderboard);
+    }
+  }, [hud.best, hud.ready, hud.stars, playerName]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
