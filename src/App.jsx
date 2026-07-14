@@ -427,11 +427,11 @@ export default function App() {
                 <p>Продолжаем через {resumeCountdown}</p>
               ) : (
                 <div className="pause-actions">
-                  <button type="button" className={soundEnabled ? 'sound-toggle active' : 'sound-toggle'} onClick={toggleSound}>
-                    Звук: {soundEnabled ? 'Вкл' : 'Выкл'}
-                  </button>
                   <button type="button" onClick={togglePause}>
                     Продолжить
+                  </button>
+                  <button type="button" className={soundEnabled ? 'sound-toggle active' : 'sound-toggle'} onClick={toggleSound}>
+                    Звук: {soundEnabled ? 'Вкл' : 'Выкл'}
                   </button>
                   <button type="button" className="secondary" onClick={goToMenu}>
                     Главное меню
@@ -446,52 +446,54 @@ export default function App() {
           <div className="center-overlay">
             <div className="modal-panel settings-panel">
               <h1>Настройки</h1>
-              <button type="button" className={soundEnabled ? 'sound-toggle active' : 'sound-toggle'} onClick={toggleSound}>
-                Звук: {soundEnabled ? 'Вкл' : 'Выкл'}
-              </button>
-              <div className="track-picker" aria-label="Фоновая музыка">
-                <span>Трек {trackIndex + 1}/10</span>
-                <strong>{musicTracks[trackIndex]}</strong>
-                <div className="track-actions">
-                  <button type="button" onClick={() => changeTrack(-1)} aria-label="Предыдущий трек">
-                    ‹
-                  </button>
-                  <button type="button" onClick={() => changeTrack(1)} aria-label="Следующий трек">
-                    ›
-                  </button>
+              <div className="settings-stack">
+                <button type="button" className={soundEnabled ? 'sound-toggle active' : 'sound-toggle'} onClick={toggleSound}>
+                  Звук: {soundEnabled ? 'Вкл' : 'Выкл'}
+                </button>
+                <div className="track-picker" aria-label="Фоновая музыка">
+                  <span>Трек {trackIndex + 1}/10</span>
+                  <strong>{musicTracks[trackIndex]}</strong>
+                  <div className="track-actions">
+                    <button type="button" onClick={() => changeTrack(-1)} aria-label="Предыдущий трек">
+                      ‹
+                    </button>
+                    <button type="button" onClick={() => changeTrack(1)} aria-label="Следующий трек">
+                      ›
+                    </button>
+                  </div>
                 </div>
+                <label className="volume-control">
+                  <span>
+                    Музыка
+                    <strong>{Math.round(musicVolume * 100)}%</strong>
+                  </span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={Math.round(musicVolume * 100)}
+                    onChange={changeMusicVolume}
+                  />
+                </label>
+                <label className="volume-control">
+                  <span>
+                    Эффекты
+                    <strong>{Math.round(effectsVolume * 100)}%</strong>
+                  </span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={Math.round(effectsVolume * 100)}
+                    onChange={changeEffectsVolume}
+                  />
+                </label>
+                <button type="button" className="secondary" onClick={goToMenu}>
+                  В меню
+                </button>
               </div>
-              <label className="volume-control">
-                <span>
-                  Музыка
-                  <strong>{Math.round(musicVolume * 100)}%</strong>
-                </span>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  step="1"
-                  value={Math.round(musicVolume * 100)}
-                  onChange={changeMusicVolume}
-                />
-              </label>
-              <label className="volume-control">
-                <span>
-                  Эффекты
-                  <strong>{Math.round(effectsVolume * 100)}%</strong>
-                </span>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  step="1"
-                  value={Math.round(effectsVolume * 100)}
-                  onChange={changeEffectsVolume}
-                />
-              </label>
-              <button type="button" className="secondary" onClick={goToMenu}>
-                В меню
-              </button>
             </div>
           </div>
         )}

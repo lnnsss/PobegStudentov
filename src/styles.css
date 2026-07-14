@@ -389,17 +389,32 @@ button {
 }
 
 .settings-panel {
-  width: min(500px, 90vw);
-  gap: 20px;
+  width: min(500px, calc(100vw - 28px));
+  max-height: calc(100dvh - 28px);
+  gap: clamp(14px, 2.4vw, 20px);
+  overflow: auto;
   background:
     radial-gradient(circle at 50% 0%, rgba(83, 170, 255, 0.16), transparent 42%),
     rgba(245, 251, 255, 0.96);
 }
 
+.settings-stack {
+  display: grid;
+  width: min(360px, 100%);
+  gap: clamp(12px, 2vw, 16px);
+  justify-items: stretch;
+}
+
+.settings-stack > button,
+.settings-stack > .track-picker,
+.settings-stack > .volume-control {
+  width: 100%;
+}
+
 .track-picker,
 .volume-control {
   display: grid;
-  width: min(360px, 100%);
+  min-width: 0;
   gap: 10px;
   color: #14243a;
   font-family: "Courier New", ui-monospace, monospace;
@@ -448,7 +463,7 @@ button {
   gap: 12px;
 }
 
-.track-actions button {
+.settings-panel .track-actions button {
   min-width: 0;
   width: 100%;
   min-height: 42px;
@@ -459,6 +474,7 @@ button {
 
 .volume-control input {
   width: 100%;
+  min-width: 0;
   accent-color: #1975ef;
   cursor: pointer;
 }
@@ -918,6 +934,30 @@ button {
 
   .result-panel {
     transform: scale(0.86);
+  }
+
+  .settings-panel {
+    gap: 10px;
+    padding: 18px 26px 16px;
+  }
+
+  .settings-stack {
+    gap: 9px;
+  }
+
+  .track-picker {
+    gap: 6px;
+    padding: 9px;
+  }
+
+  .track-picker strong {
+    min-height: auto;
+  }
+
+  .settings-panel .track-actions button,
+  .settings-panel > .settings-stack > button,
+  .settings-stack > button {
+    min-height: 38px;
   }
 }
 

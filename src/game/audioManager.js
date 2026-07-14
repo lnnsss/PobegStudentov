@@ -45,8 +45,8 @@ class GameAudio {
     this.musicStep = 0;
     this.musicPlaying = false;
     this.enabled = localStorage.getItem(SOUND_KEY) !== 'off';
-    this.musicVolume = readVolume(MUSIC_VOLUME_KEY, 0.62);
-    this.effectsVolume = readVolume(EFFECTS_VOLUME_KEY, 0.74);
+    this.musicVolume = readVolume(MUSIC_VOLUME_KEY, 0.8);
+    this.effectsVolume = readVolume(EFFECTS_VOLUME_KEY, 0.8);
     this.trackIndex = Math.min(TRACKS.length - 1, Math.max(0, Number(localStorage.getItem(TRACK_KEY)) || 0));
   }
 
