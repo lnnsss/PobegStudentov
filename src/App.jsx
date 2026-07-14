@@ -52,6 +52,10 @@ export default function App() {
   const [isCheckingName, setIsCheckingName] = useState(false);
   const [leaderboard, setLeaderboard] = useState(() => readLocalLeaderboard());
   const [soundEnabled, setSoundEnabled] = useState(() => gameAudio.isEnabled());
+  const [musicVolume, setMusicVolume] = useState(() => gameAudio.getMusicVolume());
+  const [effectsVolume, setEffectsVolume] = useState(() => gameAudio.getEffectsVolume());
+  const [trackIndex, setTrackIndex] = useState(() => gameAudio.getTrackIndex());
+  const musicTracks = gameAudio.getTracks();
 
   useEffect(() => {
     playerNameRef.current = playerName;
@@ -176,6 +180,30 @@ export default function App() {
   const showSettings = useCallback(() => {
     gameAudio.play('button');
     setScreen('settings');
+  }, []);
+
+  const changeTrack = useCallback(
+    (direction) => {
+      gameAudio.unlock();
+      gameAudio.play('button');
+      const nextIndex = (trackIndex + direction + musicTracks.length) % musicTracks.length;
+      gameAudio.setTrackIndex(nextIndex);
+      setTrackIndex(nextIndex);
+    },
+    [musicTracks.length, trackIndex],
+  );
+
+  const changeMusicVolume = useCallback((event) => {
+    const nextVolume = Number(event.target.value) / 100;
+    gameAudio.setMusicVolume(nextVolume);
+    setMusicVolume(nextVolume);
+  }, []);
+
+  const changeEffectsVolume = useCallback((event) => {
+    const nextVolume = Number(event.target.value) / 100;
+    gameAudio.setEffectsVolume(nextVolume);
+    setEffectsVolume(nextVolume);
+    gameAudio.play('button');
   }, []);
 
   const submitName = useCallback(
@@ -415,6 +443,46 @@ export default function App() {
               <button type="button" className={soundEnabled ? 'sound-toggle active' : 'sound-toggle'} onClick={toggleSound}>
                 Звук: {soundEnabled ? 'Вкл' : 'Выкл'}
               </button>
+              <div className="track-picker" aria-label="Фоновая музыка">
+                <span>Трек {trackIndex + 1}/10</span>
+                <strong>{musicTracks[trackIndex]}</strong>
+                <div className="track-actions">
+                  <button type="button" onClick={() => changeTrack(-1)} aria-label="Предыдущий трек">
+                    ‹
+                  </button>
+                  <button type="button" onClick={() => changeTrack(1)} aria-label="Следующий трек">
+                    ›
+                  </button>
+                </div>
+              </div>
+              <label className="volume-control">
+                <span>
+                  Музыка
+                  <strong>{Math.round(musicVolume * 100)}%</strong>
+                </span>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={Math.round(musicVolume * 100)}
+                  onChange={changeMusicVolume}
+                />
+              </label>
+              <label className="volume-control">
+                <span>
+                  Эффекты
+                  <strong>{Math.round(effectsVolume * 100)}%</strong>
+                </span>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={Math.round(effectsVolume * 100)}
+                  onChange={changeEffectsVolume}
+                />
+              </label>
               <button type="button" className="secondary" onClick={goToMenu}>
                 В меню
               </button>
