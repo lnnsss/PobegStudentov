@@ -7,6 +7,8 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
 }
 
 * {
@@ -33,7 +35,7 @@ button {
   display: grid;
   place-items: center;
   width: 100%;
-  height: 100%;
+  height: 100dvh;
   min-height: 100dvh;
   padding: 0;
   background: #74bbe1;
@@ -212,7 +214,7 @@ button {
   z-index: 4;
   display: grid;
   place-items: center;
-  padding: 20px;
+  padding: max(20px, var(--safe-top)) 20px max(20px, var(--safe-bottom));
   background: rgba(13, 32, 53, 0.28);
 }
 
@@ -386,6 +388,8 @@ button {
 .pause-panel {
   gap: 28px;
   padding-block: clamp(28px, 5vw, 46px);
+  max-height: calc(100dvh - 40px - var(--safe-bottom));
+  overflow: auto;
 }
 
 .settings-panel {
@@ -798,14 +802,17 @@ button {
 }
 
 .records-panel {
+  grid-template-rows: auto minmax(0, 1fr) auto;
   width: min(620px, 90vw);
   max-height: min(680px, calc(100dvh - 40px));
   align-content: start;
+  overflow: hidden;
 }
 
 .records-list {
   display: grid;
   width: 100%;
+  min-height: 0;
   max-height: min(56vh, 430px);
   gap: 12px;
   padding: 0;
@@ -928,6 +935,7 @@ button {
 
   .pause-panel {
     width: min(360px, 82vw);
+    max-height: calc(100svh - 28px - var(--safe-bottom));
     gap: 16px;
     padding: 24px 24px 20px;
   }
@@ -944,7 +952,7 @@ button {
 
   .records-panel {
     width: min(560px, calc(100vw - 28px));
-    max-height: calc(100dvh - 24px);
+    max-height: calc(100svh - 28px - var(--safe-bottom));
     gap: 10px;
     padding: 22px 18px 16px;
   }
@@ -954,7 +962,7 @@ button {
   }
 
   .records-list {
-    max-height: min(48vh, 190px);
+    max-height: none;
     gap: 8px;
   }
 
@@ -969,9 +977,18 @@ button {
 }
 
 @media (max-width: 900px) and (orientation: landscape) {
+  .game-shell {
+    height: 100svh;
+    min-height: 100svh;
+  }
+
   .game-frame {
-    width: min(100vw, calc(100dvh * 16 / 9));
-    height: min(100dvh, calc(100vw * 9 / 16));
+    width: min(100vw, calc((100svh - var(--safe-bottom)) * 16 / 9));
+    height: min(calc(100svh - var(--safe-bottom)), calc(100vw * 9 / 16));
+  }
+
+  .center-overlay {
+    padding: 12px 14px calc(12px + var(--safe-bottom));
   }
 }
 
@@ -1012,6 +1029,7 @@ button {
   }
 
   .pause-panel {
+    max-height: calc(100svh - 22px - var(--safe-bottom));
     gap: 12px;
     padding: 18px 22px 16px;
   }
@@ -1027,12 +1045,29 @@ button {
 
   .records-panel {
     width: min(620px, calc(100vw - 22px));
+    max-height: calc(100svh - 24px - var(--safe-bottom));
     gap: 8px;
-    padding: 18px 16px 14px;
+    padding: 14px 16px 12px;
+  }
+
+  .records-panel h1 {
+    font-size: clamp(22px, 5.2vw, 30px);
   }
 
   .records-list {
-    max-height: min(46vh, 148px);
+    max-height: none;
+    gap: 6px;
+  }
+
+  .records-list li {
+    min-height: 36px;
+    padding: 6px 8px;
+    font-size: clamp(13px, 2.7vw, 16px);
+  }
+
+  .records-panel > button {
+    min-height: 36px;
+    padding: 7px 14px;
   }
 
   .settings-panel {
