@@ -31,6 +31,30 @@ Environment variables for the next Supabase step:
 
 Do not commit real `.env.local` values.
 
+## SEO Checklist
+
+Already configured in `index.html`:
+- Russian title and description for the game.
+- Open Graph and Twitter preview metadata.
+- Search keywords around `Побег студентов`, `Лига студентов`, `Республика Татарстан`, `РТ`, `Татарстан`, `форум`, `студенчество`, `Казань`, `браузерная игра`, and `пиксельный раннер`.
+- JSON-LD structured data for `WebSite` and `VideoGame`.
+- `robots.txt`, `sitemap.xml`, and canonical URL.
+
+Needed from the owner before final launch:
+- Final production domain, if it differs from `https://pobeg-studentov.vercel.app/`.
+- Google Search Console verification meta tag value, if using HTML tag verification.
+- Yandex Webmaster verification meta tag value, if using HTML tag verification.
+- Final 1200x630 social preview image at `public/og-image.png`, if the current logo preview should be replaced.
+- Final favicon pack files listed above, if browser/device icons should be fully polished.
+
+After deployment:
+- Add the domain in Google Search Console and submit `https://<domain>/sitemap.xml`.
+- Add the domain in Yandex Webmaster and submit `https://<domain>/sitemap.xml`.
+- If verification uses HTML meta tags, add:
+  - `<meta name="google-site-verification" content="..." />`
+  - `<meta name="yandex-verification" content="..." />`
+  to `index.html`.
+
 ## Supabase Plan
 
 For the next step, move records from `localStorage` to Supabase while keeping local fallback.

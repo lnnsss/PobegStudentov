@@ -1,7 +1,7 @@
 {
   "name": "Побег студентов",
   "short_name": "Побег",
-  "description": "Пиксельный браузерный раннер про студенческую жизнь.",
+  "description": "Пиксельный браузерный раннер про студенчество, Лигу студентов, форум и Татарстан.",
   "start_url": "/",
   "scope": "/",
   "display": "fullscreen",
@@ -9,6 +9,7 @@
   "background_color": "#59b5e7",
   "theme_color": "#59b5e7",
   "lang": "ru",
+  "categories": ["games", "entertainment", "education"],
   "icons": [
     {
       "src": "/favicon.svg",
