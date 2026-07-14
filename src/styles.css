@@ -651,6 +651,50 @@ button {
   font-weight: 800;
 }
 
+.loading-overlay {
+  background:
+    radial-gradient(circle at 50% 24%, rgba(205, 240, 255, 0.28), transparent 34%),
+    rgba(13, 32, 53, 0.32);
+}
+
+.loading-panel {
+  width: min(420px, 86vw);
+  gap: 16px;
+  font-family: "Courier New", ui-monospace, monospace;
+  font-weight: 900;
+}
+
+.loading-panel h1 {
+  margin: 0;
+  font-size: clamp(28px, 5vw, 44px);
+  text-transform: uppercase;
+}
+
+.loading-bar {
+  width: min(300px, 100%);
+  height: 24px;
+  padding: 4px;
+  overflow: hidden;
+  background: #e9f5ff;
+  border: 4px solid #102034;
+  border-radius: 7px;
+  box-shadow: inset -4px -4px 0 rgba(16, 27, 53, 0.08);
+}
+
+.loading-bar span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(180deg, #4da1ff 0%, #1269ea 100%);
+  border-radius: 3px;
+  transition: width 140ms linear;
+}
+
+.loading-panel strong {
+  color: #1778d7;
+  font-size: clamp(22px, 4vw, 32px);
+  line-height: 1;
+}
+
 .modal-panel h1 {
   margin: 0;
   font-size: clamp(26px, 4vw, 44px);

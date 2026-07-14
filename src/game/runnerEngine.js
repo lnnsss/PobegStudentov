@@ -62,11 +62,12 @@ function coverRect(sourceWidth, sourceHeight, targetWidth, targetHeight) {
 }
 
 export class RunnerEngine {
-  constructor(canvas, onHudChange, onGameEvent = () => {}) {
+  constructor(canvas, onHudChange, onGameEvent = () => {}, onLoadingProgress = () => {}) {
     this.canvas = canvas;
     this.context = canvas.getContext('2d');
     this.onHudChange = onHudChange;
     this.onGameEvent = onGameEvent;
+    this.onLoadingProgress = onLoadingProgress;
     this.animationFrame = 0;
     this.lastTime = 0;
     this.assets = null;
@@ -79,10 +80,14 @@ export class RunnerEngine {
   }
 
   async start() {
-    this.assets = await loadGameAssets();
+    this.assets = await loadGameAssets((progress) => {
+      if (this.destroyed) return;
+      this.onLoadingProgress(progress);
+      this.publishHud({ ready: false, loadingProgress: progress });
+    });
     if (this.destroyed) return;
     this.seedScenery();
-    this.publishHud({ ready: true });
+    this.publishHud({ ready: true, loadingProgress: 100 });
     this.animationFrame = requestAnimationFrame(this.tick);
   }
 

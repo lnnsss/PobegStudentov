@@ -2,8 +2,8 @@ export const LOGICAL_WIDTH = 1280;
 export const LOGICAL_HEIGHT = 720;
 
 export const ASSET_URLS = {
-  background: '/assets/bg.png',
-  road: '/assets/road.png',
+  background: '/assets/optimized/bg.webp',
+  road: '/assets/optimized/road.webp',
   runnerFrames: ['/assets/girl_run_1.png', '/assets/girl_run_2.png'],
   runnerLose: '/assets/girl_lose.png',
   obstacles: [
@@ -17,13 +17,13 @@ export const ASSET_URLS = {
   star: '/assets/star.png',
   flashlight: '/assets/flashlight.png',
   universities: [
-    '/assets/univer/иэуп.png',
-    '/assets/univer/каи.png',
-    '/assets/univer/кгэу.png',
-    '/assets/univer/кфу1.png',
-    '/assets/univer/мед.png',
-    '/assets/univer/пгуфксит.png',
-    '/assets/univer/тисби.png',
+    '/assets/optimized/univer/иэуп.webp',
+    '/assets/optimized/univer/каи.webp',
+    '/assets/optimized/univer/кгэу.webp',
+    '/assets/optimized/univer/кфу1.webp',
+    '/assets/optimized/univer/мед.webp',
+    '/assets/optimized/univer/пгуфксит.webp',
+    '/assets/optimized/univer/тисби.webp',
   ],
   teacherSets: [
     {

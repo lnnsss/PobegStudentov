@@ -18,6 +18,7 @@ const initialHud = {
   paused: false,
   gameOver: false,
   ready: false,
+  loadingProgress: 0,
 };
 
 const RESUME_AFTER_ROTATE_MS = 2500;
@@ -388,14 +389,20 @@ export default function App() {
         )}
 
         {!hud.ready && (
-          <div className="center-overlay">
-            <div className="modal-panel compact">Загрузка...</div>
+          <div className="center-overlay loading-overlay">
+            <div className="modal-panel loading-panel">
+              <h1>Загрузка</h1>
+              <div className="loading-bar" aria-label={`Загрузка ${hud.loadingProgress}%`}>
+                <span style={{ width: `${hud.loadingProgress}%` }} />
+              </div>
+              <strong>{hud.loadingProgress}%</strong>
+            </div>
           </div>
         )}
 
         {screen === 'menu' && hud.ready && (
           <div className="menu-overlay">
-            <img className="game-logo" src="/assets/logo.png" alt="Побег студентов" />
+            <img className="game-logo" src="/assets/optimized/logo.webp" alt="Побег студентов" />
             <div className="menu-actions">
               <button type="button" className="game-button primary" onClick={startGame}>
                 <span className="button-icon play-mark" />
