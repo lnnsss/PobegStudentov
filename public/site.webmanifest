@@ -1,0 +1,20 @@
+{
+  "name": "Плейлист студентов",
+  "short_name": "Плейлист",
+  "description": "Пиксельный браузерный раннер про студенческую жизнь.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#59b5e7",
+  "theme_color": "#59b5e7",
+  "lang": "ru",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

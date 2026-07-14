@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://playlist-studentov.vercel.app/sitemap.xml
