@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://playlist-studentov.vercel.app/sitemap.xml
+Sitemap: https://pobeg-studentov.vercel.app/sitemap.xml

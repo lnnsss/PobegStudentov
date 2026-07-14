@@ -298,7 +298,7 @@ export default function App() {
 
         {screen === 'menu' && hud.ready && (
           <div className="menu-overlay">
-            <img className="game-logo" src="/assets/logo.png" alt="Плейлист студентов" />
+            <img className="game-logo" src="/assets/logo.png" alt="Побег студентов" />
             <div className="menu-actions">
               <button type="button" className="game-button primary" onClick={startGame}>
                 <span className="button-icon play-mark" />

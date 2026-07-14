@@ -1,7 +1,7 @@
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient.js';
 
-const PLAYER_NAME_KEY = 'playlist-studentov-player-name';
-const LEADERBOARD_KEY = 'playlist-studentov-leaderboard';
+const PLAYER_NAME_KEY = 'pobeg-studentov-player-name';
+const LEADERBOARD_KEY = 'pobeg-studentov-leaderboard';
 
 function normalizeRecord(record) {
   return {

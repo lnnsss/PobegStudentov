@@ -1,7 +1,7 @@
 import { loadGameAssets } from './loadAssets.js';
 import { GROUND_Y, LOGICAL_HEIGHT, LOGICAL_WIDTH, ROAD_TOP } from './assetConfig.js';
 
-const STORAGE_KEY = 'playlist-studentov-runner-best';
+const STORAGE_KEY = 'pobeg-studentov-runner-best';
 const PLAYER_X = 190;
 const PLAYER_WIDTH = 116;
 const PLAYER_HEIGHT = 164;

@@ -14,7 +14,7 @@ Recommended final files to add later:
 - `public/android-chrome-512x512.png` - PNG, 512x512.
 - `public/og-image.png` - PNG/JPG, 1200x630 for social previews.
 
-After uploading these, update `index.html` and `public/site.webmanifest` to point to the final PNG/ICO files. Also replace `https://playlist-studentov.vercel.app` in `index.html`, `robots.txt`, `sitemap.xml`, and `.env.example` with the production domain if it changes.
+After uploading these, update `index.html` and `public/site.webmanifest` to point to the final PNG/ICO files. Also replace `https://pobeg-studentov.vercel.app` in `index.html`, `robots.txt`, `sitemap.xml`, and `.env.example` with the production domain if it changes.
 
 ## Vercel
 
