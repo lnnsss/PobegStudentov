@@ -244,6 +244,26 @@ button {
   gap: 9px;
 }
 
+.menu-credit {
+  position: absolute;
+  right: clamp(14px, 2.2vw, 30px);
+  bottom: clamp(10px, 2vh, 22px);
+  max-width: min(420px, 82vw);
+  margin: 0;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: clamp(10px, 1.1vw, 13px);
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: right;
+  text-shadow: 0 2px 0 rgba(16, 27, 53, 0.22);
+}
+
+.menu-credit a {
+  color: rgba(255, 255, 255, 0.92);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .game-button {
   position: relative;
   display: flex;
@@ -809,6 +829,13 @@ button {
   .menu-actions {
     width: min(320px, 70vw);
     gap: 7px;
+  }
+
+  .menu-credit {
+    right: 50%;
+    bottom: 8px;
+    text-align: center;
+    transform: translateX(50%);
   }
 
   .game-button {

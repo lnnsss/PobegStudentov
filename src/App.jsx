@@ -410,6 +410,12 @@ export default function App() {
                 Рекорды
               </button>
             </div>
+            <p className="menu-credit">
+              Design and web-site by{' '}
+              <a href="https://lnsnostylist.ru/" target="_blank" rel="noreferrer">
+                lnsnostylist
+              </a>
+            </p>
           </div>
         )}
 
