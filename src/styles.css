@@ -862,6 +862,26 @@ button {
 }
 
 @media (max-width: 720px), (max-height: 480px) {
+  .modal-panel {
+    max-width: calc(100% - 20px);
+    gap: 10px;
+    padding: 18px 16px 14px;
+    border-width: 3px;
+    box-shadow: 0 7px 0 rgba(20, 36, 58, 0.16);
+  }
+
+  .modal-panel h1 {
+    font-size: clamp(22px, 6svh, 32px);
+  }
+
+  .modal-panel button {
+    min-width: 140px;
+    min-height: 38px;
+    padding: 8px 12px;
+    border-width: 3px;
+    box-shadow: 0 4px 0 #102034;
+  }
+
   .hud-stack {
     top: 14px;
     left: 18px;
@@ -944,7 +964,7 @@ button {
 
   .result-panel {
     width: min(430px, calc(100% - 24px));
-    max-height: calc(100svh - 28px - var(--safe-bottom));
+    max-height: calc(100% - 24px);
     gap: 8px;
     padding: 24px 22px 20px;
     overflow: auto;
@@ -997,8 +1017,8 @@ button {
   }
 
   .pause-panel {
-    width: min(360px, 82vw);
-    max-height: calc(100svh - 28px - var(--safe-bottom));
+    width: min(340px, calc(100% - 24px));
+    max-height: calc(100% - 24px);
     gap: 16px;
     padding: 24px 24px 20px;
   }
@@ -1015,7 +1035,7 @@ button {
 
   .records-panel {
     width: min(520px, calc(100% - 24px));
-    max-height: calc(100svh - 28px - var(--safe-bottom));
+    max-height: calc(100% - 24px);
     gap: 10px;
     padding: 18px 14px 14px;
   }
@@ -1036,6 +1056,82 @@ button {
     padding: 7px 8px;
     border-width: 2px;
     font-size: clamp(12px, 3.2svh, 16px);
+  }
+
+  .settings-panel {
+    width: min(390px, calc(100% - 24px));
+    max-height: calc(100% - 24px);
+    gap: 8px;
+    padding: 18px 16px 14px;
+  }
+
+  .settings-stack {
+    width: min(300px, 100%);
+    gap: 8px;
+  }
+
+  .settings-stack > button {
+    min-height: 38px;
+  }
+
+  .track-picker {
+    gap: 6px;
+    padding: 8px;
+    border-width: 2px;
+  }
+
+  .track-picker span,
+  .volume-control span {
+    gap: 8px;
+    font-size: clamp(11px, 3.5svh, 14px);
+  }
+
+  .track-picker strong {
+    min-height: auto;
+    font-size: clamp(13px, 4svh, 17px);
+  }
+
+  .track-actions {
+    width: min(150px, 100%);
+    gap: 8px;
+  }
+
+  .settings-panel .track-actions button {
+    min-height: 34px;
+    padding: 3px 10px;
+    font-size: 24px;
+  }
+
+  .volume-control {
+    gap: 6px;
+  }
+
+  .loading-panel,
+  .name-panel {
+    width: min(360px, calc(100% - 24px));
+    max-height: calc(100% - 24px);
+    gap: 10px;
+    padding: 18px 16px 14px;
+  }
+
+  .loading-panel h1,
+  .name-panel h1 {
+    font-size: clamp(22px, 6svh, 30px);
+  }
+
+  .loading-bar {
+    height: 18px;
+    border-width: 3px;
+  }
+
+  .loading-panel strong {
+    font-size: clamp(18px, 5svh, 24px);
+  }
+
+  .name-panel input {
+    min-height: 40px;
+    border-width: 3px;
+    font-size: clamp(16px, 4svh, 22px);
   }
 }
 
@@ -1109,7 +1205,7 @@ button {
 
   .result-panel {
     width: min(380px, calc(100% - 20px));
-    max-height: calc(100svh - 20px - var(--safe-bottom));
+    max-height: calc(100% - 18px);
     gap: 6px;
     padding: 20px 16px 14px;
     transform: none;
@@ -1149,7 +1245,8 @@ button {
   }
 
   .pause-panel {
-    max-height: calc(100svh - 22px - var(--safe-bottom));
+    width: min(310px, calc(100% - 18px));
+    max-height: calc(100% - 18px);
     gap: 12px;
     padding: 18px 22px 16px;
   }
@@ -1165,7 +1262,7 @@ button {
 
   .records-panel {
     width: min(500px, calc(100% - 18px));
-    max-height: calc(100svh - 24px - var(--safe-bottom));
+    max-height: calc(100% - 18px);
     gap: 7px;
     padding: 12px 10px 10px;
   }
@@ -1193,27 +1290,71 @@ button {
   }
 
   .settings-panel {
-    gap: 10px;
-    padding: 18px 26px 16px;
+    width: min(350px, calc(100% - 18px));
+    max-height: calc(100% - 18px);
+    gap: 6px;
+    padding: 12px 12px 10px;
+  }
+
+  .settings-panel h1 {
+    font-size: clamp(18px, 6svh, 24px);
   }
 
   .settings-stack {
-    gap: 9px;
+    width: min(270px, 100%);
+    gap: 6px;
   }
 
   .track-picker {
-    gap: 6px;
-    padding: 9px;
+    gap: 4px;
+    padding: 6px;
   }
 
   .track-picker strong {
     min-height: auto;
+    font-size: clamp(12px, 4svh, 15px);
+  }
+
+  .track-picker span,
+  .volume-control span {
+    font-size: clamp(10px, 3.5svh, 12px);
   }
 
   .settings-panel .track-actions button,
   .settings-panel > .settings-stack > button,
   .settings-stack > button {
-    min-height: 38px;
+    min-height: 30px;
+  }
+
+  .settings-panel .track-actions button {
+    font-size: 20px;
+  }
+
+  .volume-control {
+    gap: 4px;
+  }
+
+  .loading-panel,
+  .name-panel {
+    width: min(320px, calc(100% - 18px));
+    max-height: calc(100% - 18px);
+    gap: 8px;
+    padding: 14px 12px 10px;
+  }
+
+  .loading-panel h1,
+  .name-panel h1 {
+    font-size: clamp(18px, 6svh, 24px);
+  }
+
+  .loading-panel strong {
+    font-size: clamp(16px, 5svh, 20px);
+  }
+
+  .name-panel input {
+    min-height: 34px;
+    padding: 6px 10px;
+    font-size: clamp(14px, 4svh, 18px);
   }
 }
 

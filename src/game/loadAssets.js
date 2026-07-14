@@ -3,14 +3,7 @@ import { ASSET_URLS } from './assetConfig.js';
 function loadImage(src) {
   return new Promise((resolve, reject) => {
     const image = new Image();
-    image.onload = async () => {
-      try {
-        if (image.decode) await image.decode();
-      } catch {
-        // Some browsers resolve onload before decode is available; the image is still usable.
-      }
-      resolve(image);
-    };
+    image.onload = () => resolve(image);
     image.onerror = () => reject(new Error(`Не удалось загрузить ${src}`));
     image.src = src;
   });
