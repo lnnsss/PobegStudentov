@@ -195,16 +195,13 @@ export default function App() {
     setScreen('settings');
   }, []);
 
-  const changeTrack = useCallback(
-    (direction) => {
-      gameAudio.unlock();
-      gameAudio.play('button');
-      const nextIndex = (trackIndex + direction + musicTracks.length) % musicTracks.length;
-      gameAudio.setTrackIndex(nextIndex);
-      setTrackIndex(nextIndex);
-    },
-    [musicTracks.length, trackIndex],
-  );
+  const selectTrack = useCallback((event) => {
+    gameAudio.unlock();
+    const nextIndex = Number(event.target.value);
+    gameAudio.setTrackIndex(nextIndex);
+    setTrackIndex(nextIndex);
+    gameAudio.play('button');
+  }, []);
 
   const changeMusicVolume = useCallback((event) => {
     const nextVolume = Number(event.target.value) / 100;
@@ -469,18 +466,27 @@ export default function App() {
                 <button type="button" className={soundEnabled ? 'sound-toggle active' : 'sound-toggle'} onClick={toggleSound}>
                   Звук: {soundEnabled ? 'Вкл' : 'Выкл'}
                 </button>
-                <div className="track-picker" aria-label="Фоновая музыка">
-                  <span>Трек {trackIndex + 1}/10</span>
-                  <strong>{musicTracks[trackIndex]}</strong>
-                  <div className="track-actions">
-                    <button type="button" onClick={() => changeTrack(-1)} aria-label="Предыдущий трек">
-                      ‹
-                    </button>
-                    <button type="button" onClick={() => changeTrack(1)} aria-label="Следующий трек">
-                      ›
-                    </button>
-                  </div>
-                </div>
+                <label className="volume-control track-control">
+                  <span>
+                    Трек {trackIndex + 1}/10
+                    <strong>{musicTracks[trackIndex]}</strong>
+                  </span>
+                  <input
+                    type="range"
+                    list="music-track-marks"
+                    min="0"
+                    max={musicTracks.length - 1}
+                    step="1"
+                    value={trackIndex}
+                    onChange={selectTrack}
+                    aria-label="Фоновая музыка"
+                  />
+                  <datalist id="music-track-marks">
+                    {musicTracks.map((track, index) => (
+                      <option key={track} value={index} />
+                    ))}
+                  </datalist>
+                </label>
                 <label className="volume-control">
                   <span>
                     Музыка

@@ -410,12 +410,10 @@ button {
 }
 
 .settings-stack > button,
-.settings-stack > .track-picker,
 .settings-stack > .volume-control {
   width: 100%;
 }
 
-.track-picker,
 .volume-control {
   display: grid;
   min-width: 0;
@@ -426,16 +424,6 @@ button {
   text-align: left;
 }
 
-.track-picker {
-  justify-items: center;
-  text-align: center;
-  padding: 12px;
-  background: rgba(248, 252, 255, 0.82);
-  border: 3px solid rgba(16, 32, 52, 0.78);
-  border-radius: 7px;
-}
-
-.track-picker span,
 .volume-control span {
   display: flex;
   width: 100%;
@@ -447,33 +435,15 @@ button {
   text-transform: uppercase;
 }
 
-.track-picker strong {
-  max-width: 100%;
-  min-height: 2.2em;
-  overflow-wrap: anywhere;
-  color: #1778d7;
-  font-size: clamp(17px, 2.5vw, 22px);
-  line-height: 1.1;
-}
-
 .volume-control strong {
+  max-width: 100%;
+  overflow-wrap: anywhere;
   color: #d59a00;
 }
 
-.track-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  width: min(190px, 100%);
-  gap: 12px;
-}
-
-.settings-panel .track-actions button {
-  min-width: 0;
-  width: 100%;
-  min-height: 42px;
-  padding: 4px 12px;
-  font-size: 30px;
-  line-height: 1;
+.track-control strong {
+  color: #1778d7;
+  text-align: right;
 }
 
 .volume-control input {
@@ -892,6 +862,9 @@ button {
 
   .score-copy {
     gap: 4px;
+    width: 100%;
+    padding-left: 1px;
+    justify-items: start;
   }
 
   .score-line {
@@ -899,8 +872,19 @@ button {
   }
 
   .pause-button {
-    width: 52px;
+    top: 12px;
+    right: 12px;
+    width: 42px;
     border-width: 3px;
+  }
+
+  .pause-button:hover {
+    transform: none;
+    background: linear-gradient(180deg, #3a95ff 0%, #1262d7 100%);
+  }
+
+  .pause-button:active {
+    transform: translateY(1px);
   }
 
   .menu-overlay {
@@ -1058,48 +1042,35 @@ button {
     font-size: clamp(12px, 3.2svh, 16px);
   }
 
+  .records-panel > button {
+    width: min(300px, 100%);
+  }
+
   .settings-panel {
     width: min(390px, calc(100% - 24px));
     max-height: calc(100% - 24px);
-    gap: 8px;
+    gap: 11px;
     padding: 18px 16px 14px;
   }
 
   .settings-stack {
     width: min(300px, 100%);
-    gap: 8px;
+    gap: 11px;
   }
 
   .settings-stack > button {
     min-height: 38px;
   }
 
-  .track-picker {
-    gap: 6px;
-    padding: 8px;
-    border-width: 2px;
-  }
-
-  .track-picker span,
   .volume-control span {
     gap: 8px;
     font-size: clamp(11px, 3.5svh, 14px);
   }
 
-  .track-picker strong {
-    min-height: auto;
-    font-size: clamp(13px, 4svh, 17px);
-  }
-
-  .track-actions {
-    width: min(150px, 100%);
-    gap: 8px;
-  }
-
-  .settings-panel .track-actions button {
-    min-height: 34px;
-    padding: 3px 10px;
-    font-size: 24px;
+  .volume-control strong {
+    max-width: 52%;
+    font-size: clamp(11px, 3.5svh, 14px);
+    line-height: 1;
   }
 
   .volume-control {
@@ -1192,6 +1163,7 @@ button {
 
   .score-copy {
     gap: 3px;
+    padding-left: 1px;
   }
 
   .score-line {
@@ -1199,7 +1171,10 @@ button {
   }
 
   .pause-button {
-    transform: scale(0.9);
+    top: 10px;
+    right: 10px;
+    width: 34px;
+    transform: none;
     transform-origin: top right;
   }
 
@@ -1285,6 +1260,7 @@ button {
   }
 
   .records-panel > button {
+    width: min(270px, 100%);
     min-height: 36px;
     padding: 7px 14px;
   }
@@ -1292,7 +1268,7 @@ button {
   .settings-panel {
     width: min(350px, calc(100% - 18px));
     max-height: calc(100% - 18px);
-    gap: 6px;
+    gap: 8px;
     padding: 12px 12px 10px;
   }
 
@@ -1302,36 +1278,25 @@ button {
 
   .settings-stack {
     width: min(270px, 100%);
-    gap: 6px;
+    gap: 8px;
   }
 
-  .track-picker {
-    gap: 4px;
-    padding: 6px;
-  }
-
-  .track-picker strong {
-    min-height: auto;
-    font-size: clamp(12px, 4svh, 15px);
-  }
-
-  .track-picker span,
   .volume-control span {
     font-size: clamp(10px, 3.5svh, 12px);
   }
 
-  .settings-panel .track-actions button,
   .settings-panel > .settings-stack > button,
   .settings-stack > button {
     min-height: 30px;
   }
 
-  .settings-panel .track-actions button {
-    font-size: 20px;
-  }
-
   .volume-control {
     gap: 4px;
+  }
+
+  .volume-control strong {
+    max-width: 52%;
+    font-size: clamp(10px, 3.5svh, 12px);
   }
 
   .loading-panel,
