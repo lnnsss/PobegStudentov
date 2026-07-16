@@ -526,7 +526,6 @@ export default function App() {
         {screen === 'gameOver' && (
           <div className="center-overlay game-over-overlay">
             <div className="result-panel">
-              <div className="result-star">★</div>
               <h1>Игра окончена</h1>
               <span className="result-divider" />
               <span className="result-label">Счёт</span>
@@ -535,11 +534,9 @@ export default function App() {
               <strong className="result-best">{formatScore(hud.best, 6)}</strong>
               <div className="result-actions">
                 <button type="button" className="game-button primary small" onClick={restart}>
-                  <span className="button-icon replay-mark" />
                   Заново
                 </button>
                 <button type="button" className="game-button small" onClick={goToMenu}>
-                  <span className="button-icon home-mark" />
                   В меню
                 </button>
               </div>
