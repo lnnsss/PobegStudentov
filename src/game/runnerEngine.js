@@ -23,6 +23,7 @@ const STAR_BOX_SPREAD = 3;
 const UNIVERSITY_MIN_BOXES = 14;
 const UNIVERSITY_BOX_SPREAD = 8;
 const SCENERY_SPEED_FACTOR = 0.78;
+const MAX_VIEW_WIDTH = 2172;
 
 function rectsIntersect(a, b) {
   return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
@@ -73,8 +74,13 @@ export class RunnerEngine {
     this.assets = null;
     this.destroyed = false;
     this.roadOffset = 0;
+    this.viewWidth = LOGICAL_WIDTH;
     this.best = getBestRecord();
     this.running = false;
+    this.resizeCanvas = () => this.syncCanvasSize();
+    this.syncCanvasSize();
+    window.addEventListener('resize', this.resizeCanvas);
+    window.addEventListener('orientationchange', this.resizeCanvas);
 
     this.resetState();
   }
@@ -94,6 +100,22 @@ export class RunnerEngine {
   destroy() {
     this.destroyed = true;
     cancelAnimationFrame(this.animationFrame);
+    window.removeEventListener('resize', this.resizeCanvas);
+    window.removeEventListener('orientationchange', this.resizeCanvas);
+  }
+
+  syncCanvasSize() {
+    const width = this.canvas.clientWidth || LOGICAL_WIDTH;
+    const height = this.canvas.clientHeight || LOGICAL_HEIGHT;
+    const aspectWidth = Math.round(LOGICAL_HEIGHT * (width / Math.max(1, height)));
+    const nextWidth = Math.max(LOGICAL_WIDTH, Math.min(MAX_VIEW_WIDTH, aspectWidth));
+
+    if (this.viewWidth === nextWidth && this.canvas.width === nextWidth && this.canvas.height === LOGICAL_HEIGHT) return;
+
+    this.viewWidth = nextWidth;
+    this.canvas.width = nextWidth;
+    this.canvas.height = LOGICAL_HEIGHT;
+    this.roadOffset %= this.viewWidth;
   }
 
   resetState() {
@@ -190,7 +212,7 @@ export class RunnerEngine {
   update(delta) {
     this.distance += (this.speed * delta) / 18;
     this.speed = Math.min(MAX_SPEED, START_SPEED + this.distance * 1.35);
-    this.roadOffset = (this.roadOffset + this.visualSpeed * delta) % LOGICAL_WIDTH;
+    this.roadOffset = (this.roadOffset + this.visualSpeed * delta) % this.viewWidth;
     if (!this.recordAnnounced && this.best > 0 && this.distance > this.best) {
       this.recordAnnounced = true;
       this.emit('record');
@@ -286,7 +308,7 @@ export class RunnerEngine {
   }
 
   spawnObstacle() {
-    if (!this.canSpawnAt(LOGICAL_WIDTH + 80, MIN_OBJECT_GAP)) return false;
+    if (!this.canSpawnAt(this.viewWidth + 80, MIN_OBJECT_GAP)) return false;
 
     const variants = this.assets.obstacles.map((image) => {
       const targetHeight = Math.min(132, Math.max(58, image.naturalHeight * 0.18));
@@ -308,7 +330,7 @@ export class RunnerEngine {
 
     this.objects.push({
       type: 'obstacle',
-      x: LOGICAL_WIDTH + 80,
+      x: this.viewWidth + 80,
       y: GROUND_Y - variant.height + 6,
       width: variant.width,
       height: variant.height,
@@ -320,7 +342,7 @@ export class RunnerEngine {
   }
 
   spawnTeacher() {
-    if (!this.canSpawnAt(LOGICAL_WIDTH + 120, TEACHER_MIN_GAP)) return false;
+    if (!this.canSpawnAt(this.viewWidth + 120, TEACHER_MIN_GAP)) return false;
 
     const teacherSet = this.assets.teacherSets[Math.floor(Math.random() * this.assets.teacherSets.length)];
     const frame = teacherSet.idle[0];
@@ -329,7 +351,7 @@ export class RunnerEngine {
 
     this.objects.push({
       type: 'teacher',
-      x: LOGICAL_WIDTH + 120,
+      x: this.viewWidth + 120,
       y: GROUND_Y - targetHeight + 6,
       width: targetWidth,
       height: targetHeight,
@@ -348,7 +370,7 @@ export class RunnerEngine {
   }
 
   spawnStar() {
-    const x = LOGICAL_WIDTH + 260 + Math.random() * 260;
+    const x = this.viewWidth + 260 + Math.random() * 260;
     if (!this.canSpawnAt(x, MIN_OBJECT_GAP + 90)) return false;
 
     const arcSlots = [GROUND_Y - 210, GROUND_Y - 260, GROUND_Y - 145];
@@ -384,7 +406,7 @@ export class RunnerEngine {
   }
 
   spawnLamp() {
-    const x = LOGICAL_WIDTH + 140 + Math.random() * 120;
+    const x = this.viewWidth + 140 + Math.random() * 120;
     if (!this.canSpawnSceneryAt(x, 260)) return false;
 
     this.addLamp(x);
@@ -407,7 +429,7 @@ export class RunnerEngine {
   }
 
   spawnUniversity() {
-    const x = LOGICAL_WIDTH + 220 + Math.random() * 240;
+    const x = this.viewWidth + 220 + Math.random() * 240;
     if (!this.canSpawnSceneryAt(x, 520)) return false;
 
     this.addUniversity(x);
@@ -499,7 +521,8 @@ export class RunnerEngine {
 
   draw() {
     const ctx = this.context;
-    ctx.clearRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
+    this.syncCanvasSize();
+    ctx.clearRect(0, 0, this.viewWidth, LOGICAL_HEIGHT);
     ctx.imageSmoothingEnabled = false;
 
     this.drawBackground(ctx);
@@ -510,17 +533,18 @@ export class RunnerEngine {
   }
 
   drawBackground(ctx) {
-    const rect = coverRect(this.assets.background.width, this.assets.background.height, LOGICAL_WIDTH, ROAD_TOP + 2);
-    ctx.drawImage(this.assets.background, rect.x, rect.y, rect.width, rect.height);
+    const background = this.viewWidth > LOGICAL_WIDTH + 80 ? this.assets.mobileBackground : this.assets.background;
+    const rect = coverRect(background.width, background.height, this.viewWidth, ROAD_TOP + 2);
+    ctx.drawImage(background, rect.x, rect.y, rect.width, rect.height);
   }
 
   drawRoad(ctx) {
     const sourceY = 610;
     const sourceHeight = this.assets.road.height - sourceY;
     const roadHeight = LOGICAL_HEIGHT - ROAD_TOP;
-    const tileWidth = LOGICAL_WIDTH + 8;
+    const tileWidth = this.viewWidth + 8;
 
-    for (let x = -this.roadOffset - 4; x < LOGICAL_WIDTH + tileWidth; x += LOGICAL_WIDTH) {
+    for (let x = -this.roadOffset - 4; x < this.viewWidth + tileWidth; x += this.viewWidth) {
       ctx.drawImage(this.assets.road, 0, sourceY, this.assets.road.width, sourceHeight, x, ROAD_TOP, tileWidth, roadHeight);
     }
   }

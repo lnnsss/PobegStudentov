@@ -22,6 +22,7 @@ export async function loadGameAssets(onProgress = () => {}) {
   const totalImages =
     1 +
     1 +
+    1 +
     ASSET_URLS.runnerFrames.length +
     1 +
     ASSET_URLS.obstacles.length +
@@ -40,9 +41,10 @@ export async function loadGameAssets(onProgress = () => {}) {
 
   onProgress(0);
 
-  const [background, road, runnerFrames, runnerLose, obstacles, star, flashlight, universities, teacherSets] =
+  const [background, mobileBackground, road, runnerFrames, runnerLose, obstacles, star, flashlight, universities, teacherSets] =
     await Promise.all([
       loadTrackedImage(ASSET_URLS.background),
+      loadTrackedImage(ASSET_URLS.mobileBackground),
       loadTrackedImage(ASSET_URLS.road),
       Promise.all(ASSET_URLS.runnerFrames.map(loadTrackedImage)),
       loadTrackedImage(ASSET_URLS.runnerLose),
@@ -57,6 +59,7 @@ export async function loadGameAssets(onProgress = () => {}) {
 
   return {
     background,
+    mobileBackground,
     road,
     runnerFrames,
     runnerLose,

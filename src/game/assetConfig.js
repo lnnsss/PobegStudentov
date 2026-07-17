@@ -3,6 +3,7 @@ export const LOGICAL_HEIGHT = 720;
 
 export const ASSET_URLS = {
   background: '/assets/optimized/bg.webp',
+  mobileBackground: '/assets/bg_mobile.png',
   road: '/assets/optimized/road.webp',
   runnerFrames: ['/assets/girl_run_1.png', '/assets/girl_run_2.png'],
   runnerLose: '/assets/girl_lose.png',
