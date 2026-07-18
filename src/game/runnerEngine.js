@@ -1,7 +1,7 @@
 import { loadGameAssets } from './loadAssets.js';
 import { GROUND_Y, LOGICAL_HEIGHT, LOGICAL_WIDTH, ROAD_TOP } from './assetConfig.js';
 
-const STORAGE_KEY = 'pobeg-studentov-runner-best-v2';
+const STORAGE_KEY_PREFIX = 'pobeg-studentov-runner-best-v2';
 const PLAYER_X = 190;
 const PLAYER_WIDTH = 116;
 const PLAYER_HEIGHT = 164;
@@ -29,13 +29,13 @@ function rectsIntersect(a, b) {
   return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
 }
 
-function getBestRecord() {
-  const value = Number(localStorage.getItem(STORAGE_KEY));
+function getBestRecord(ownerId) {
+  const value = Number(localStorage.getItem(`${STORAGE_KEY_PREFIX}:${ownerId || 'guest'}`));
   return Number.isFinite(value) ? value : 0;
 }
 
-function setBestRecord(value) {
-  localStorage.setItem(STORAGE_KEY, String(value));
+function setBestRecord(ownerId, value) {
+  localStorage.setItem(`${STORAGE_KEY_PREFIX}:${ownerId || 'guest'}`, String(value));
 }
 
 function nextTeacherTarget() {
@@ -75,7 +75,8 @@ export class RunnerEngine {
     this.destroyed = false;
     this.roadOffset = 0;
     this.viewWidth = LOGICAL_WIDTH;
-    this.best = getBestRecord();
+    this.bestOwnerId = 'guest';
+    this.best = getBestRecord(this.bestOwnerId);
     this.running = false;
     this.resizeCanvas = () => this.syncCanvasSize();
     this.syncCanvasSize();
@@ -150,6 +151,16 @@ export class RunnerEngine {
     this.frameIndex = 0;
     this.lastTime = 0;
     this.recordAnnounced = false;
+  }
+
+  setBestOwner(ownerId) {
+    const nextOwnerId = ownerId || 'guest';
+    if (this.bestOwnerId === nextOwnerId) return;
+
+    this.bestOwnerId = nextOwnerId;
+    this.best = getBestRecord(this.bestOwnerId);
+    this.recordAnnounced = false;
+    this.publishHud();
   }
 
   restart() {
@@ -498,7 +509,7 @@ export class RunnerEngine {
     const finalDistance = Math.floor(this.distance);
     if (finalDistance > this.best) {
       this.best = finalDistance;
-      setBestRecord(this.best);
+      setBestRecord(this.bestOwnerId, this.best);
     }
     this.publishHud();
   }

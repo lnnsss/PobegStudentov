@@ -738,6 +738,11 @@ button {
   background: rgba(245, 251, 255, 0.96);
 }
 
+.auth-panel,
+.profile-panel {
+  gap: clamp(10px, 2vw, 16px);
+}
+
 .name-panel input {
   width: min(300px, 100%);
   min-height: 54px;
@@ -765,6 +770,44 @@ button {
   font-size: clamp(14px, 2.2vw, 18px);
   font-weight: 900;
   line-height: 1.2;
+}
+
+.form-separator {
+  color: #1778d7;
+  font-family: "Courier New", ui-monospace, monospace;
+  font-size: clamp(14px, 2vw, 18px);
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.modal-panel .google-button {
+  width: min(300px, 100%);
+  color: #14243a;
+  background: linear-gradient(180deg, #ffffff 0%, #e9f4ff 100%);
+}
+
+.modal-panel .link-button {
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  color: #1778d7;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.modal-panel .link-button:hover {
+  color: #0d54a7;
+  background: transparent;
+}
+
+.modal-panel .link-button:active {
+  transform: none;
+  box-shadow: none;
 }
 
 .modal-panel button:disabled {

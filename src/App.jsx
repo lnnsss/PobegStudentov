@@ -2,12 +2,20 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { gameAudio } from './game/audioManager.js';
 import { RunnerEngine } from './game/runnerEngine.js';
 import {
+  fetchProfile,
+  getCurrentSession,
+  isNicknameAvailable,
+  onAuthStateChange,
+  saveProfile,
+  signInWithEmail,
+  signInWithGoogle,
+  signOut,
+  signUpWithEmail,
+} from './services/authService.js';
+import {
   fetchLeaderboard,
-  isPlayerNameAvailable,
   readLocalLeaderboard,
-  readPlayerName,
   upsertLeaderboardRecord,
-  writePlayerName,
 } from './services/leaderboardService.js';
 
 const initialHud = {
@@ -35,6 +43,10 @@ function normalizePlayerName(value) {
     .slice(0, 16);
 }
 
+function normalizeTelegram(value) {
+  return value.trim().replace(/^@+/, '').replace(/[^\w]/g, '').slice(0, 32);
+}
+
 export default function App() {
   const canvasRef = useRef(null);
   const engineRef = useRef(null);
@@ -48,8 +60,16 @@ export default function App() {
   const [screen, setScreen] = useState('menu');
   const [resumeCountdown, setResumeCountdown] = useState(0);
   const [damagedHeartIndex, setDamagedHeartIndex] = useState(-1);
-  const [playerName, setPlayerName] = useState(() => readPlayerName());
-  const [nameInput, setNameInput] = useState(() => readPlayerName());
+  const [authReady, setAuthReady] = useState(false);
+  const [authSession, setAuthSession] = useState(null);
+  const [authMode, setAuthMode] = useState('signin');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [isAuthLoading, setIsAuthLoading] = useState(false);
+  const [profile, setProfile] = useState(null);
+  const [profileInput, setProfileInput] = useState({ nickname: '', telegram: '' });
+  const playerName = profile?.nickname || '';
   const [nameError, setNameError] = useState('');
   const [isCheckingName, setIsCheckingName] = useState(false);
   const [leaderboard, setLeaderboard] = useState(() => readLocalLeaderboard());
@@ -62,6 +82,54 @@ export default function App() {
   useEffect(() => {
     playerNameRef.current = playerName;
   }, [playerName]);
+
+  useEffect(() => {
+    let active = true;
+
+    getCurrentSession().then((session) => {
+      if (!active) return;
+      setAuthSession(session);
+      setAuthReady(true);
+    });
+
+    const unsubscribe = onAuthStateChange((session) => {
+      setAuthSession(session);
+      setAuthReady(true);
+      if (!session) {
+        setProfile(null);
+        setProfileInput({ nickname: '', telegram: '' });
+        setScreen('menu');
+        engineRef.current?.showMenu();
+      }
+    });
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!authSession) return;
+
+    let active = true;
+    fetchProfile().then((nextProfile) => {
+      if (!active) return;
+      setProfile(nextProfile);
+      setProfileInput({
+        nickname: nextProfile?.nickname || '',
+        telegram: nextProfile?.telegram || '',
+      });
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [authSession]);
+
+  useEffect(() => {
+    engineRef.current?.setBestOwner(authSession?.user?.id || 'guest');
+  }, [authSession?.user?.id]);
 
   useEffect(() => {
     if (!hud.ready || !playerName || hasSyncedStoredRecordRef.current) return;
@@ -216,11 +284,58 @@ export default function App() {
     gameAudio.play('button');
   }, []);
 
+  const submitAuth = useCallback(
+    async (event) => {
+      event.preventDefault();
+      setAuthError('');
+      setIsAuthLoading(true);
+
+      try {
+        if (authMode === 'signup') {
+          const session = await signUpWithEmail(authEmail.trim(), authPassword);
+          if (!session) {
+            setAuthError('Проверьте почту и подтвердите регистрацию.');
+          }
+        } else {
+          await signInWithEmail(authEmail.trim(), authPassword);
+        }
+      } catch (error) {
+        setAuthError(error.message || 'Не получилось войти.');
+      } finally {
+        setIsAuthLoading(false);
+      }
+    },
+    [authEmail, authMode, authPassword],
+  );
+
+  const handleGoogleSignIn = useCallback(async () => {
+    setAuthError('');
+    setIsAuthLoading(true);
+
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      setAuthError(error.message || 'Не получилось открыть Google-вход.');
+      setIsAuthLoading(false);
+    }
+  }, []);
+
+  const handleSignOut = useCallback(async () => {
+    gameAudio.play('button');
+    gameAudio.stopMusic();
+    try {
+      await signOut();
+    } catch (error) {
+      setAuthError(error.message || 'Не получилось выйти.');
+    }
+  }, []);
+
   const submitName = useCallback(
     async (event) => {
       event.preventDefault();
 
-      const cleanName = normalizePlayerName(nameInput);
+      const cleanName = normalizePlayerName(profileInput.nickname);
+      const cleanTelegram = normalizeTelegram(profileInput.telegram);
       setNameError('');
       if (!cleanName) {
         setNameError('Введите никнейм.');
@@ -228,24 +343,29 @@ export default function App() {
       }
 
       setIsCheckingName(true);
-      const available = await isPlayerNameAvailable(cleanName, playerNameRef.current);
+      const available = await isNicknameAvailable(cleanName, profile?.nickname || '');
       setIsCheckingName(false);
 
       if (!available) {
         setNameError('Такой ник уже занят. Возьмите другой.');
-        setNameInput(cleanName);
+        setProfileInput((current) => ({ ...current, nickname: cleanName }));
         return;
       }
 
-      writePlayerName(cleanName);
-      playerNameRef.current = cleanName;
-      setPlayerName(cleanName);
-      setNameInput(cleanName);
-      gameAudio.unlock();
-      gameAudio.play('button');
-      upsertLeaderboardRecord(cleanName, hud.best, hud.stars).then(setLeaderboard);
+      try {
+        const nextProfile = await saveProfile({ nickname: cleanName, telegram: cleanTelegram });
+        playerNameRef.current = nextProfile.nickname;
+        setProfile(nextProfile);
+        setProfileInput({ nickname: nextProfile.nickname, telegram: nextProfile.telegram });
+        gameAudio.unlock();
+        gameAudio.play('button');
+        upsertLeaderboardRecord(nextProfile.nickname, hud.best, hud.stars).then(setLeaderboard);
+      } catch (error) {
+        const message = String(error.message || '');
+        setNameError(message.includes('duplicate') || message.includes('unique') ? 'Такой ник уже занят. Возьмите другой.' : 'Не получилось сохранить профиль.');
+      }
     },
-    [hud.best, hud.stars, nameInput],
+    [hud.best, hud.stars, profile?.nickname, profileInput.nickname, profileInput.telegram],
   );
 
   useEffect(() => {
@@ -425,6 +545,11 @@ export default function App() {
                 <span className="button-icon records-mark" />
                 Рекорды
               </button>
+              {profile && (
+                <button type="button" className="game-button small" onClick={handleSignOut}>
+                  Выйти
+                </button>
+              )}
             </div>
             <p className="menu-credit">
               Design and web-site by{' '}
@@ -568,24 +693,87 @@ export default function App() {
           </div>
         )}
 
-        {hud.ready && !playerName && (
+        {hud.ready && authReady && !authSession && (
           <div className="center-overlay name-overlay">
-            <form className="modal-panel name-panel" onSubmit={submitName}>
-              <h1>Ваш ник</h1>
+            <form className="modal-panel name-panel auth-panel" onSubmit={submitAuth}>
+              <h1>{authMode === 'signup' ? 'Регистрация' : 'Вход'}</h1>
+              <button type="button" className="google-button" onClick={handleGoogleSignIn} disabled={isAuthLoading}>
+                Войти через Google
+              </button>
+              <span className="form-separator">или</span>
+              <input
+                autoComplete="email"
+                placeholder="Email"
+                type="email"
+                value={authEmail}
+                onChange={(event) => {
+                  setAuthError('');
+                  setAuthEmail(event.target.value);
+                }}
+                aria-label="Email"
+              />
+              <input
+                autoComplete={authMode === 'signup' ? 'new-password' : 'current-password'}
+                minLength="6"
+                placeholder="Пароль"
+                type="password"
+                value={authPassword}
+                onChange={(event) => {
+                  setAuthError('');
+                  setAuthPassword(event.target.value);
+                }}
+                aria-label="Пароль"
+              />
+              {authError && <p className="form-error">{authError}</p>}
+              <button type="submit" disabled={!authEmail.trim() || authPassword.length < 6 || isAuthLoading}>
+                {isAuthLoading ? 'Подождите...' : authMode === 'signup' ? 'Создать аккаунт' : 'Войти'}
+              </button>
+              <button
+                type="button"
+                className="link-button"
+                onClick={() => {
+                  setAuthError('');
+                  setAuthMode(authMode === 'signup' ? 'signin' : 'signup');
+                }}
+              >
+                {authMode === 'signup' ? 'Уже есть аккаунт' : 'Создать аккаунт'}
+              </button>
+            </form>
+          </div>
+        )}
+
+        {hud.ready && authReady && authSession && !playerName && (
+          <div className="center-overlay name-overlay">
+            <form className="modal-panel name-panel profile-panel" onSubmit={submitName}>
+              <h1>Профиль</h1>
               <input
                 autoFocus
                 maxLength="16"
                 placeholder="Никнейм"
-                value={nameInput}
+                value={profileInput.nickname}
                 onChange={(event) => {
                   setNameError('');
-                  setNameInput(event.target.value);
+                  setProfileInput((current) => ({ ...current, nickname: event.target.value }));
                 }}
                 aria-label="Никнейм"
               />
+              <input
+                autoComplete="username"
+                maxLength="32"
+                placeholder="Telegram без @"
+                value={profileInput.telegram}
+                onChange={(event) => {
+                  setNameError('');
+                  setProfileInput((current) => ({ ...current, telegram: event.target.value }));
+                }}
+                aria-label="Telegram"
+              />
               {nameError && <p className="form-error">{nameError}</p>}
-              <button type="submit" disabled={!nameInput.trim() || isCheckingName}>
+              <button type="submit" disabled={!profileInput.nickname.trim() || isCheckingName}>
                 {isCheckingName ? 'Проверяем...' : 'Готово'}
+              </button>
+              <button type="button" className="link-button" onClick={handleSignOut}>
+                Выйти
               </button>
             </form>
           </div>
