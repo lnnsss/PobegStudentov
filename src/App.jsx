@@ -56,6 +56,7 @@ export default function App() {
   const previousLivesRef = useRef(initialHud.lives);
   const playerNameRef = useRef('');
   const authSessionRef = useRef(null);
+  const isSigningOutRef = useRef(false);
   const hasSyncedStoredRecordRef = useRef(false);
   const [hud, setHud] = useState(initialHud);
   const [screen, setScreen] = useState('menu');
@@ -69,6 +70,7 @@ export default function App() {
   const [authError, setAuthError] = useState('');
   const [isAuthLoading, setIsAuthLoading] = useState(false);
   const [profile, setProfile] = useState(null);
+  const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [profileInput, setProfileInput] = useState({ nickname: '', telegram: '' });
   const playerName = profile?.nickname || '';
   const [nameError, setNameError] = useState('');
@@ -86,65 +88,93 @@ export default function App() {
 
   useEffect(() => {
     let active = true;
+    let signOutTimer = 0;
+    let readyTimer = 0;
 
     const applySession = (session) => {
+      window.clearTimeout(signOutTimer);
       authSessionRef.current = session;
       setAuthSession(session);
       setAuthReady(true);
     };
 
-    getCurrentSession().then((session) => {
-      if (!active) return;
-      if (session || !authSessionRef.current) {
-        applySession(session);
-        return;
-      }
-      setAuthReady(true);
-    });
+    const clearAuthState = () => {
+      applySession(null);
+      setProfile(null);
+      setProfileInput({ nickname: '', telegram: '' });
+      setScreen('menu');
+      engineRef.current?.showMenu();
+    };
 
     const unsubscribe = onAuthStateChange((session, event) => {
       if (!active) return;
 
-      if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
-        applySession(null);
-        setProfile(null);
-        setProfileInput({ nickname: '', telegram: '' });
-        setScreen('menu');
-        engineRef.current?.showMenu();
-        return;
-      }
-
       if (session) {
+        isSigningOutRef.current = false;
         applySession(session);
         return;
       }
 
-      if (!authSessionRef.current) {
+      if (event === 'INITIAL_SESSION') {
         applySession(null);
+        return;
+      }
+
+      if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+        if (isSigningOutRef.current) {
+          isSigningOutRef.current = false;
+          clearAuthState();
+          return;
+        }
+
+        setAuthReady(false);
+        signOutTimer = window.setTimeout(async () => {
+          const restoredSession = await getCurrentSession();
+          if (!active) return;
+          if (restoredSession) {
+            applySession(restoredSession);
+          } else {
+            clearAuthState();
+          }
+        }, 1800);
         return;
       }
 
       setAuthReady(true);
     });
 
+    readyTimer = window.setTimeout(() => {
+      if (active) setAuthReady(true);
+    }, 3000);
+
     return () => {
       active = false;
+      window.clearTimeout(signOutTimer);
+      window.clearTimeout(readyTimer);
       unsubscribe();
     };
   }, []);
 
   useEffect(() => {
-    if (!authSession) return;
+    if (!authSession) {
+      setIsProfileLoading(false);
+      return;
+    }
 
     let active = true;
-    fetchProfile().then((nextProfile) => {
-      if (!active) return;
-      setProfile(nextProfile);
-      setProfileInput({
-        nickname: nextProfile?.nickname || '',
-        telegram: nextProfile?.telegram || '',
+    setIsProfileLoading(true);
+    fetchProfile()
+      .then((nextProfile) => {
+        if (!active) return;
+        setProfile(nextProfile);
+        setProfileInput({
+          nickname: nextProfile?.nickname || '',
+          telegram: nextProfile?.telegram || '',
+        });
+      })
+      .finally(() => {
+        if (active) setIsProfileLoading(false);
       });
-    });
 
     return () => {
       active = false;
@@ -347,9 +377,11 @@ export default function App() {
   const handleSignOut = useCallback(async () => {
     gameAudio.play('button');
     gameAudio.stopMusic();
+    isSigningOutRef.current = true;
     try {
       await signOut();
     } catch (error) {
+      isSigningOutRef.current = false;
       setAuthError(error.message || 'Не получилось выйти.');
     }
   }, []);
@@ -377,7 +409,7 @@ export default function App() {
       }
 
       try {
-        const nextProfile = await saveProfile({ nickname: cleanName, telegram: cleanTelegram });
+        const nextProfile = await saveProfile({ nickname: cleanName, telegram: cleanTelegram, user: authSession?.user });
         playerNameRef.current = nextProfile.nickname;
         setProfile(nextProfile);
         setProfileInput({ nickname: nextProfile.nickname, telegram: nextProfile.telegram });
@@ -389,7 +421,7 @@ export default function App() {
         setNameError(message.includes('duplicate') || message.includes('unique') ? 'Такой ник уже занят. Возьмите другой.' : 'Не получилось сохранить профиль.');
       }
     },
-    [hud.best, hud.stars, profile?.nickname, profileInput.nickname, profileInput.telegram],
+    [authSession?.user, hud.best, hud.stars, profile?.nickname, profileInput.nickname, profileInput.telegram],
   );
 
   useEffect(() => {
@@ -717,6 +749,14 @@ export default function App() {
           </div>
         )}
 
+        {hud.ready && !authReady && (
+          <div className="center-overlay name-overlay">
+            <div className="modal-panel name-panel">
+              <h1>Входим...</h1>
+            </div>
+          </div>
+        )}
+
         {hud.ready && authReady && !authSession && (
           <div className="center-overlay name-overlay">
             <form className="modal-panel name-panel auth-panel" onSubmit={submitAuth}>
@@ -765,7 +805,15 @@ export default function App() {
           </div>
         )}
 
-        {hud.ready && authReady && authSession && !playerName && (
+        {hud.ready && authReady && authSession && isProfileLoading && (
+          <div className="center-overlay name-overlay">
+            <div className="modal-panel name-panel">
+              <h1>Профиль...</h1>
+            </div>
+          </div>
+        )}
+
+        {hud.ready && authReady && authSession && !isProfileLoading && !playerName && (
           <div className="center-overlay name-overlay">
             <form className="modal-panel name-panel profile-panel" onSubmit={submitName}>
               <h1>Профиль</h1>

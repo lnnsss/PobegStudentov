@@ -11,9 +11,11 @@ export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseKey);
 export const supabase = isSupabaseConfigured
   ? createClient(supabaseUrl, supabaseKey, {
       auth: {
-        autoRefreshToken: true,
+        autoRefreshToken: false,
         detectSessionInUrl: true,
+        flowType: 'pkce',
         persistSession: true,
+        storageKey: 'pobeg-studentov-auth-v2',
       },
     })
   : null;

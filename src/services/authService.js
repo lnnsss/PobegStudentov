@@ -97,16 +97,12 @@ export async function isNicknameAvailable(nickname, currentNickname = '') {
   return true;
 }
 
-export async function saveProfile({ nickname, telegram }) {
+export async function saveProfile({ nickname, telegram, user }) {
   if (!isSupabaseConfigured || !supabase) throw new Error('Авторизация пока не настроена.');
 
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
+  const profileUser = user || (await getCurrentSession())?.user;
 
-  if (userError) throw userError;
-  if (!user) throw new Error('Сначала войдите в аккаунт.');
+  if (!profileUser) throw new Error('Сначала войдите в аккаунт.');
 
   const cleanTelegram = String(telegram || '')
     .trim()
@@ -117,8 +113,8 @@ export async function saveProfile({ nickname, telegram }) {
     .from('player_profiles')
     .upsert(
       {
-        user_id: user.id,
-        email: user.email || '',
+        user_id: profileUser.id,
+        email: profileUser.email || '',
         nickname,
         telegram: cleanTelegram,
         updated_at: new Date().toISOString(),
