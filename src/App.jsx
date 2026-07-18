@@ -55,6 +55,7 @@ export default function App() {
   const damageTimerRef = useRef(0);
   const previousLivesRef = useRef(initialHud.lives);
   const playerNameRef = useRef('');
+  const authSessionRef = useRef(null);
   const hasSyncedStoredRecordRef = useRef(false);
   const [hud, setHud] = useState(initialHud);
   const [screen, setScreen] = useState('menu');
@@ -86,21 +87,44 @@ export default function App() {
   useEffect(() => {
     let active = true;
 
+    const applySession = (session) => {
+      authSessionRef.current = session;
+      setAuthSession(session);
+      setAuthReady(true);
+    };
+
     getCurrentSession().then((session) => {
       if (!active) return;
-      setAuthSession(session);
+      if (session || !authSessionRef.current) {
+        applySession(session);
+        return;
+      }
       setAuthReady(true);
     });
 
-    const unsubscribe = onAuthStateChange((session) => {
-      setAuthSession(session);
-      setAuthReady(true);
-      if (!session) {
+    const unsubscribe = onAuthStateChange((session, event) => {
+      if (!active) return;
+
+      if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+        applySession(null);
         setProfile(null);
         setProfileInput({ nickname: '', telegram: '' });
         setScreen('menu');
         engineRef.current?.showMenu();
+        return;
       }
+
+      if (session) {
+        applySession(session);
+        return;
+      }
+
+      if (!authSessionRef.current) {
+        applySession(null);
+        return;
+      }
+
+      setAuthReady(true);
     });
 
     return () => {
@@ -697,10 +721,6 @@ export default function App() {
           <div className="center-overlay name-overlay">
             <form className="modal-panel name-panel auth-panel" onSubmit={submitAuth}>
               <h1>{authMode === 'signup' ? 'Регистрация' : 'Вход'}</h1>
-              <button type="button" className="google-button" onClick={handleGoogleSignIn} disabled={isAuthLoading}>
-                Войти через Google
-              </button>
-              <span className="form-separator">или</span>
               <input
                 autoComplete="email"
                 placeholder="Email"
@@ -727,6 +747,9 @@ export default function App() {
               {authError && <p className="form-error">{authError}</p>}
               <button type="submit" disabled={!authEmail.trim() || authPassword.length < 6 || isAuthLoading}>
                 {isAuthLoading ? 'Подождите...' : authMode === 'signup' ? 'Создать аккаунт' : 'Войти'}
+              </button>
+              <button type="button" className="google-button" onClick={handleGoogleSignIn} disabled={isAuthLoading}>
+                Войти через Google
               </button>
               <button
                 type="button"
