@@ -2,15 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { gameAudio } from './game/audioManager.js';
 import { RunnerEngine } from './game/runnerEngine.js';
 import {
-  fetchProfile,
-  getCurrentSession,
+  authenticateWithTelegram,
+  getTelegramUser,
   isNicknameAvailable,
-  onAuthStateChange,
   saveProfile,
-  signInWithEmail,
-  signInWithGoogle,
-  signOut,
-  signUpWithEmail,
 } from './services/authService.js';
 import {
   fetchLeaderboard,
@@ -55,20 +50,14 @@ export default function App() {
   const damageTimerRef = useRef(0);
   const previousLivesRef = useRef(initialHud.lives);
   const playerNameRef = useRef('');
-  const authSessionRef = useRef(null);
-  const isSigningOutRef = useRef(false);
   const hasSyncedStoredRecordRef = useRef(false);
   const [hud, setHud] = useState(initialHud);
   const [screen, setScreen] = useState('menu');
   const [resumeCountdown, setResumeCountdown] = useState(0);
   const [damagedHeartIndex, setDamagedHeartIndex] = useState(-1);
   const [authReady, setAuthReady] = useState(false);
-  const [authSession, setAuthSession] = useState(null);
-  const [authMode, setAuthMode] = useState('signin');
-  const [authEmail, setAuthEmail] = useState('');
-  const [authPassword, setAuthPassword] = useState('');
+  const [telegramSession, setTelegramSession] = useState(null);
   const [authError, setAuthError] = useState('');
-  const [isAuthLoading, setIsAuthLoading] = useState(false);
   const [profile, setProfile] = useState(null);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [profileInput, setProfileInput] = useState({ nickname: '', telegram: '' });
@@ -88,89 +77,27 @@ export default function App() {
 
   useEffect(() => {
     let active = true;
-    let signOutTimer = 0;
-    let readyTimer = 0;
-
-    const applySession = (session) => {
-      window.clearTimeout(signOutTimer);
-      authSessionRef.current = session;
-      setAuthSession(session);
-      setAuthReady(true);
-    };
-
-    const clearAuthState = () => {
-      applySession(null);
-      setProfile(null);
-      setProfileInput({ nickname: '', telegram: '' });
-      setScreen('menu');
-      engineRef.current?.showMenu();
-    };
-
-    const unsubscribe = onAuthStateChange((session, event) => {
-      if (!active) return;
-
-      if (session) {
-        isSigningOutRef.current = false;
-        applySession(session);
-        return;
-      }
-
-      if (event === 'INITIAL_SESSION') {
-        applySession(null);
-        return;
-      }
-
-      if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
-        if (isSigningOutRef.current) {
-          isSigningOutRef.current = false;
-          clearAuthState();
-          return;
-        }
-
-        setAuthReady(false);
-        signOutTimer = window.setTimeout(async () => {
-          const restoredSession = await getCurrentSession();
-          if (!active) return;
-          if (restoredSession) {
-            applySession(restoredSession);
-          } else {
-            clearAuthState();
-          }
-        }, 1800);
-        return;
-      }
-
-      setAuthReady(true);
-    });
-
-    readyTimer = window.setTimeout(() => {
-      if (active) setAuthReady(true);
-    }, 3000);
-
-    return () => {
-      active = false;
-      window.clearTimeout(signOutTimer);
-      window.clearTimeout(readyTimer);
-      unsubscribe();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!authSession) {
-      setIsProfileLoading(false);
-      return;
-    }
-
-    let active = true;
     setIsProfileLoading(true);
-    fetchProfile()
-      .then((nextProfile) => {
+
+    authenticateWithTelegram()
+      .then((session) => {
         if (!active) return;
-        setProfile(nextProfile);
+        const telegramUser = session.telegramUser || getTelegramUser();
+        setTelegramSession(session);
+        setProfile(session.profile);
         setProfileInput({
-          nickname: nextProfile?.nickname || '',
-          telegram: nextProfile?.telegram || '',
+          nickname: session.profile?.nickname || '',
+          telegram: session.profile?.telegram || telegramUser?.username || '',
         });
+        setAuthReady(true);
+      })
+      .catch((error) => {
+        if (!active) return;
+        setTelegramSession(null);
+        setProfile(null);
+        setProfileInput({ nickname: '', telegram: getTelegramUser()?.username || '' });
+        setAuthError(error.message || 'Не получилось войти через Telegram.');
+        setAuthReady(true);
       })
       .finally(() => {
         if (active) setIsProfileLoading(false);
@@ -179,11 +106,11 @@ export default function App() {
     return () => {
       active = false;
     };
-  }, [authSession]);
+  }, []);
 
   useEffect(() => {
-    engineRef.current?.setBestOwner(authSession?.user?.id || 'guest');
-  }, [authSession?.user?.id]);
+    engineRef.current?.setBestOwner(telegramSession?.telegramId || 'guest');
+  }, [telegramSession?.telegramId]);
 
   useEffect(() => {
     if (!hud.ready || !playerName || hasSyncedStoredRecordRef.current) return;
@@ -338,54 +265,6 @@ export default function App() {
     gameAudio.play('button');
   }, []);
 
-  const submitAuth = useCallback(
-    async (event) => {
-      event.preventDefault();
-      setAuthError('');
-      setIsAuthLoading(true);
-
-      try {
-        if (authMode === 'signup') {
-          const session = await signUpWithEmail(authEmail.trim(), authPassword);
-          if (!session) {
-            setAuthError('Проверьте почту и подтвердите регистрацию.');
-          }
-        } else {
-          await signInWithEmail(authEmail.trim(), authPassword);
-        }
-      } catch (error) {
-        setAuthError(error.message || 'Не получилось войти.');
-      } finally {
-        setIsAuthLoading(false);
-      }
-    },
-    [authEmail, authMode, authPassword],
-  );
-
-  const handleGoogleSignIn = useCallback(async () => {
-    setAuthError('');
-    setIsAuthLoading(true);
-
-    try {
-      await signInWithGoogle();
-    } catch (error) {
-      setAuthError(error.message || 'Не получилось открыть Google-вход.');
-      setIsAuthLoading(false);
-    }
-  }, []);
-
-  const handleSignOut = useCallback(async () => {
-    gameAudio.play('button');
-    gameAudio.stopMusic();
-    isSigningOutRef.current = true;
-    try {
-      await signOut();
-    } catch (error) {
-      isSigningOutRef.current = false;
-      setAuthError(error.message || 'Не получилось выйти.');
-    }
-  }, []);
-
   const submitName = useCallback(
     async (event) => {
       event.preventDefault();
@@ -409,7 +288,7 @@ export default function App() {
       }
 
       try {
-        const nextProfile = await saveProfile({ nickname: cleanName, telegram: cleanTelegram, user: authSession?.user });
+        const nextProfile = await saveProfile({ nickname: cleanName, telegram: cleanTelegram });
         playerNameRef.current = nextProfile.nickname;
         setProfile(nextProfile);
         setProfileInput({ nickname: nextProfile.nickname, telegram: nextProfile.telegram });
@@ -421,7 +300,7 @@ export default function App() {
         setNameError(message.includes('duplicate') || message.includes('unique') ? 'Такой ник уже занят. Возьмите другой.' : 'Не получилось сохранить профиль.');
       }
     },
-    [authSession?.user, hud.best, hud.stars, profile?.nickname, profileInput.nickname, profileInput.telegram],
+    [hud.best, hud.stars, profile?.nickname, profileInput.nickname, profileInput.telegram],
   );
 
   useEffect(() => {
@@ -601,11 +480,6 @@ export default function App() {
                 <span className="button-icon records-mark" />
                 Рекорды
               </button>
-              {profile && (
-                <button type="button" className="game-button small" onClick={handleSignOut}>
-                  Выйти
-                </button>
-              )}
             </div>
             <p className="menu-credit">
               Design and web-site by{' '}
@@ -757,55 +631,17 @@ export default function App() {
           </div>
         )}
 
-        {hud.ready && authReady && !authSession && (
+        {hud.ready && authReady && !telegramSession && (
           <div className="center-overlay name-overlay">
-            <form className="modal-panel name-panel auth-panel" onSubmit={submitAuth}>
-              <h1>{authMode === 'signup' ? 'Регистрация' : 'Вход'}</h1>
-              <input
-                autoComplete="email"
-                placeholder="Email"
-                type="email"
-                value={authEmail}
-                onChange={(event) => {
-                  setAuthError('');
-                  setAuthEmail(event.target.value);
-                }}
-                aria-label="Email"
-              />
-              <input
-                autoComplete={authMode === 'signup' ? 'new-password' : 'current-password'}
-                minLength="6"
-                placeholder="Пароль"
-                type="password"
-                value={authPassword}
-                onChange={(event) => {
-                  setAuthError('');
-                  setAuthPassword(event.target.value);
-                }}
-                aria-label="Пароль"
-              />
+            <div className="modal-panel name-panel auth-panel">
+              <h1>Telegram</h1>
+              <p className="auth-copy">Откройте игру в Telegram Mini App, чтобы привязать аккаунт.</p>
               {authError && <p className="form-error">{authError}</p>}
-              <button type="submit" disabled={!authEmail.trim() || authPassword.length < 6 || isAuthLoading}>
-                {isAuthLoading ? 'Подождите...' : authMode === 'signup' ? 'Создать аккаунт' : 'Войти'}
-              </button>
-              <button type="button" className="google-button" onClick={handleGoogleSignIn} disabled={isAuthLoading}>
-                Войти через Google
-              </button>
-              <button
-                type="button"
-                className="link-button"
-                onClick={() => {
-                  setAuthError('');
-                  setAuthMode(authMode === 'signup' ? 'signin' : 'signup');
-                }}
-              >
-                {authMode === 'signup' ? 'Уже есть аккаунт' : 'Создать аккаунт'}
-              </button>
-            </form>
+            </div>
           </div>
         )}
 
-        {hud.ready && authReady && authSession && isProfileLoading && (
+        {hud.ready && authReady && telegramSession && isProfileLoading && (
           <div className="center-overlay name-overlay">
             <div className="modal-panel name-panel">
               <h1>Профиль...</h1>
@@ -813,7 +649,7 @@ export default function App() {
           </div>
         )}
 
-        {hud.ready && authReady && authSession && !isProfileLoading && !playerName && (
+        {hud.ready && authReady && telegramSession && !isProfileLoading && !playerName && (
           <div className="center-overlay name-overlay">
             <form className="modal-panel name-panel profile-panel" onSubmit={submitName}>
               <h1>Профиль</h1>
@@ -842,9 +678,6 @@ export default function App() {
               {nameError && <p className="form-error">{nameError}</p>}
               <button type="submit" disabled={!profileInput.nickname.trim() || isCheckingName}>
                 {isCheckingName ? 'Проверяем...' : 'Готово'}
-              </button>
-              <button type="button" className="link-button" onClick={handleSignOut}>
-                Выйти
               </button>
             </form>
           </div>

@@ -1,90 +1,115 @@
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient.js';
 
+const TELEGRAM_FUNCTION_NAME = 'telegram-auth';
+const DEV_INIT_DATA = import.meta.env.VITE_TELEGRAM_DEV_INIT_DATA || '';
+
 function normalizeProfile(row) {
   if (!row) return null;
 
   return {
-    userId: row.user_id,
+    telegramId: row.telegram_id ? String(row.telegram_id) : '',
     nickname: String(row.nickname || '').trim(),
-    telegram: String(row.telegram || '').trim(),
-    email: String(row.email || '').trim(),
+    telegram: String(row.telegram || row.telegram_username || '').trim().replace(/^@+/, ''),
+    firstName: String(row.telegram_first_name || '').trim(),
+    photoUrl: String(row.telegram_photo_url || '').trim(),
   };
 }
 
-export async function getCurrentSession() {
-  if (!isSupabaseConfigured || !supabase) return null;
+function normalizeTelegramUser(user) {
+  if (!user) return null;
 
-  const { data, error } = await supabase.auth.getSession();
-  if (error) {
-    console.warn('Supabase session fetch failed.', error.message);
-    return null;
+  return {
+    id: user.id ? String(user.id) : '',
+    username: String(user.username || '').trim().replace(/^@+/, ''),
+    firstName: String(user.first_name || '').trim(),
+    lastName: String(user.last_name || '').trim(),
+    photoUrl: String(user.photo_url || '').trim(),
+  };
+}
+
+export function getTelegramWebApp() {
+  return window.Telegram?.WebApp || null;
+}
+
+export function getTelegramInitData() {
+  const webApp = getTelegramWebApp();
+  return webApp?.initData || DEV_INIT_DATA;
+}
+
+export function getTelegramUser() {
+  return normalizeTelegramUser(getTelegramWebApp()?.initDataUnsafe?.user || null);
+}
+
+async function invokeTelegramAuth(body) {
+  if (!isSupabaseConfigured || !supabase) throw new Error('Авторизация пока не настроена.');
+
+  const { data, error } = await supabase.functions.invoke(TELEGRAM_FUNCTION_NAME, { body });
+  if (error) throw error;
+  if (data?.error) throw new Error(data.error);
+  return data;
+}
+
+function normalizeSession(data) {
+  const telegramUser = normalizeTelegramUser(data?.telegramUser || data?.telegram_user);
+  const profile = normalizeProfile(data?.profile);
+  const telegramId = String(data?.telegramId || data?.telegram_id || telegramUser?.id || profile?.telegramId || '');
+
+  if (!telegramId) throw new Error('Telegram не вернул идентификатор пользователя.');
+
+  return {
+    telegramId,
+    telegramUser: telegramUser || {
+      id: telegramId,
+      username: profile?.telegram || '',
+      firstName: profile?.firstName || '',
+      lastName: '',
+      photoUrl: profile?.photoUrl || '',
+    },
+    profile,
+  };
+}
+
+export async function authenticateWithTelegram() {
+  const initData = getTelegramInitData();
+  const webApp = getTelegramWebApp();
+
+  if (!initData) {
+    throw new Error(webApp ? 'Telegram не передал данные входа.' : 'Откройте игру через Telegram.');
   }
 
-  return data.session || null;
+  webApp?.ready?.();
+  webApp?.expand?.();
+
+  const data = await invokeTelegramAuth({ action: 'authenticate', initData });
+  return normalizeSession(data);
 }
 
-export function onAuthStateChange(callback) {
-  if (!isSupabaseConfigured || !supabase) return () => {};
+export async function saveProfile({ nickname, telegram }) {
+  const initData = getTelegramInitData();
+  if (!initData) throw new Error('Откройте игру через Telegram.');
 
-  const { data } = supabase.auth.onAuthStateChange((event, session) => {
-    callback(session || null, event);
+  const data = await invokeTelegramAuth({
+    action: 'save-profile',
+    initData,
+    nickname,
+    telegram,
   });
 
-  return () => data.subscription.unsubscribe();
+  return normalizeProfile(data?.profile);
 }
 
-export async function signInWithGoogle() {
-  if (!isSupabaseConfigured || !supabase) throw new Error('Авторизация пока не настроена.');
+export async function submitTelegramScore({ score, stars }) {
+  const initData = getTelegramInitData();
+  if (!initData) throw new Error('Откройте игру через Telegram.');
 
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: window.location.origin,
-    },
+  const data = await invokeTelegramAuth({
+    action: 'submit-score',
+    initData,
+    score,
+    stars,
   });
 
-  if (error) throw error;
-}
-
-export async function signUpWithEmail(email, password) {
-  if (!isSupabaseConfigured || !supabase) throw new Error('Авторизация пока не настроена.');
-
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      emailRedirectTo: window.location.origin,
-    },
-  });
-
-  if (error) throw error;
-  return data.session || null;
-}
-
-export async function signInWithEmail(email, password) {
-  if (!isSupabaseConfigured || !supabase) throw new Error('Авторизация пока не настроена.');
-
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) throw error;
-  return data.session || null;
-}
-
-export async function signOut() {
-  if (!isSupabaseConfigured || !supabase) return;
-  const { error } = await supabase.auth.signOut();
-  if (error) throw error;
-}
-
-export async function fetchProfile() {
-  if (!isSupabaseConfigured || !supabase) return null;
-
-  const { data, error } = await supabase.from('player_profiles').select('user_id, nickname, telegram, email').maybeSingle();
-  if (error) {
-    console.warn('Profile fetch failed.', error.message);
-    return null;
-  }
-
-  return normalizeProfile(data);
+  return data?.record || null;
 }
 
 export async function isNicknameAvailable(nickname, currentNickname = '') {
@@ -95,35 +120,4 @@ export async function isNicknameAvailable(nickname, currentNickname = '') {
   if (cleanCurrent && cleanNickname.toLocaleLowerCase() === cleanCurrent.toLocaleLowerCase()) return true;
 
   return true;
-}
-
-export async function saveProfile({ nickname, telegram, user }) {
-  if (!isSupabaseConfigured || !supabase) throw new Error('Авторизация пока не настроена.');
-
-  const profileUser = user || (await getCurrentSession())?.user;
-
-  if (!profileUser) throw new Error('Сначала войдите в аккаунт.');
-
-  const cleanTelegram = String(telegram || '')
-    .trim()
-    .replace(/^@+/, '')
-    .slice(0, 32);
-
-  const { data, error } = await supabase
-    .from('player_profiles')
-    .upsert(
-      {
-        user_id: profileUser.id,
-        email: profileUser.email || '',
-        nickname,
-        telegram: cleanTelegram,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'user_id' },
-    )
-    .select('user_id, nickname, telegram, email')
-    .single();
-
-  if (error) throw error;
-  return normalizeProfile(data);
 }

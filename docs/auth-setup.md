@@ -1,45 +1,48 @@
-# Auth setup
+# Telegram Mini App auth setup
 
-The app uses Supabase Auth for real user accounts.
+The app uses Telegram Mini App identity. The browser client sends raw `window.Telegram.WebApp.initData` to the Supabase Edge Function `telegram-auth`; the function verifies the signature with the bot token before it reads or writes profile and leaderboard data.
 
-## Supabase Auth settings
+## Telegram bot
 
-In Supabase Dashboard:
-
-1. Open Authentication -> URL Configuration.
-2. Set Site URL:
+1. Create or open the bot in BotFather.
+2. Configure the Mini App URL to the deployed site, for example:
    - `https://pobeg-studentov.vercel.app`
-3. Add Redirect URLs:
-   - `https://pobeg-studentov.vercel.app`
-   - `http://localhost:5173`
+3. Keep the bot token private. Do not expose it in Vite env vars.
 
-## Email/password
+## Supabase
 
-Email/password auth works through Supabase Auth. Keep email confirmation enabled for production if you want verified contacts.
+Apply the database migrations, then deploy the Edge Function:
 
-## Google sign-in
+```sh
+supabase functions deploy telegram-auth
+supabase secrets set TELEGRAM_BOT_TOKEN=<bot-token>
+```
 
-To enable the "Войти через Google" button:
+The Edge Function also expects the standard Supabase runtime secrets:
 
-1. Create an OAuth Client in Google Cloud Console.
-2. Add the Supabase callback URL from Authentication -> Providers -> Google.
-3. Copy Google Client ID and Client Secret into Supabase Google provider settings.
-4. Enable the Google provider.
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
 
 ## Stored user data
 
 The app stores public game data in `leaderboard_scores`:
 
-- `user_id`
+- `telegram_id`
 - `player_name`
 - `score`
 - `stars`
 
-The app stores private contact/profile data in `player_profiles`:
+The app stores private/contact profile data in `player_profiles`:
 
-- `user_id`
+- `telegram_id`
 - `nickname`
 - `telegram`
-- `email`
+- `telegram_username`
+- `telegram_first_name`
+- `telegram_photo_url`
 
-RLS allows users to read/update only their own profile. Public leaderboard reads do not expose email or Telegram.
+Old leaderboard rows remain readable. New submissions are tied to `telegram_id`.
+
+## Local development
+
+Normal browser tabs do not have `window.Telegram.WebApp.initData`, so login will show an “open in Telegram” message. For local-only testing you may set `VITE_TELEGRAM_DEV_INIT_DATA` to a real signed Telegram initData string from your bot session. Leave it empty in production.

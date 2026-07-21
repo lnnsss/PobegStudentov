@@ -9,13 +9,5 @@ const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || fallbackSup
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseKey);
 
 export const supabase = isSupabaseConfigured
-  ? createClient(supabaseUrl, supabaseKey, {
-      auth: {
-        autoRefreshToken: false,
-        detectSessionInUrl: true,
-        flowType: 'pkce',
-        persistSession: true,
-        storageKey: 'pobeg-studentov-auth-v2',
-      },
-    })
+  ? createClient(supabaseUrl, supabaseKey)
   : null;

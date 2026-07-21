@@ -1,4 +1,5 @@
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient.js';
+import { submitTelegramScore } from './authService.js';
 
 const LEADERBOARD_KEY = 'pobeg-studentov-leaderboard-v2';
 
@@ -85,13 +86,13 @@ export async function upsertLeaderboardRecord(name, score, stars = 0) {
   if (!isSupabaseConfigured || !supabase || !name) return localRecords;
 
   const normalized = normalizeRecord({ name, score, stars });
-  const { error } = await supabase.rpc('submit_leaderboard_score', {
-    input_score: normalized.score,
-    input_stars: normalized.stars,
-  });
-
-  if (error) {
-    console.warn('Supabase leaderboard RPC failed, keeping local record.', error.message);
+  try {
+    await submitTelegramScore({
+      score: normalized.score,
+      stars: normalized.stars,
+    });
+  } catch (error) {
+    console.warn('Telegram leaderboard submit failed, keeping local record.', error.message);
     return localRecords;
   }
 
