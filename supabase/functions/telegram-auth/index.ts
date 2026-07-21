@@ -49,6 +49,16 @@ function sanitizeTelegram(value: unknown) {
     .slice(0, 32);
 }
 
+function buildDefaultNickname(user: TelegramUser) {
+  const username = sanitizeNickname(user.username || '');
+  if (username) return username;
+
+  const fullName = sanitizeNickname(`${user.first_name || ''} ${user.last_name || ''}`);
+  if (fullName) return fullName;
+
+  return `player${user.id}`.slice(0, 16);
+}
+
 function normalizeTelegramUser(user: TelegramUser) {
   return {
     id: String(user.id),
@@ -127,6 +137,7 @@ async function verifyTelegramInitData(initData: string, botToken: string) {
 
 async function getProfile(supabase: ReturnType<typeof createClient>, user: TelegramUser) {
   const telegramUser = normalizeTelegramUser(user);
+  const defaultNickname = buildDefaultNickname(user);
   const { data: profile, error: profileError } = await supabase
     .from('player_profiles')
     .select('telegram_id, nickname, telegram, telegram_username, telegram_first_name, telegram_photo_url')
@@ -139,6 +150,8 @@ async function getProfile(supabase: ReturnType<typeof createClient>, user: Teleg
     const { data, error } = await supabase
       .from('player_profiles')
       .update({
+        nickname: profile.nickname || defaultNickname,
+        telegram: profile.telegram || telegramUser.username,
         telegram_username: telegramUser.username,
         telegram_first_name: telegramUser.firstName,
         telegram_photo_url: telegramUser.photoUrl,
@@ -156,6 +169,7 @@ async function getProfile(supabase: ReturnType<typeof createClient>, user: Teleg
     .from('player_profiles')
     .insert({
       telegram_id: user.id,
+      nickname: defaultNickname,
       telegram: telegramUser.username,
       telegram_username: telegramUser.username,
       telegram_first_name: telegramUser.firstName,

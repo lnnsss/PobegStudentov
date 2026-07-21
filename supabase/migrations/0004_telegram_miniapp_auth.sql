@@ -9,6 +9,11 @@ update public.player_profiles
   set id = gen_random_uuid()
   where id is null;
 
+update public.player_profiles
+  set nickname = left(coalesce(nullif(telegram_username, ''), nullif(telegram, ''), 'player' || telegram_id), 16)
+  where telegram_id is not null
+    and nullif(btrim(coalesce(nickname, '')), '') is null;
+
 do $$
 begin
   if exists (
@@ -23,7 +28,7 @@ end $$;
 
 alter table public.player_profiles
   alter column id set not null,
-  alter column nickname drop not null,
+  alter column nickname set not null,
   alter column user_id drop not null;
 
 do $$
