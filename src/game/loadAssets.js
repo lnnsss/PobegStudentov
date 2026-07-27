@@ -18,6 +18,22 @@ async function loadTeacherSet(set, loadTrackedImage) {
   return { idle, fun };
 }
 
+async function loadObstacle(config, loadTrackedImage) {
+  const image = await loadTrackedImage(config.src);
+  return {
+    image,
+    weight: config.weight,
+  };
+}
+
+async function loadBuilding(config, loadTrackedImage) {
+  const image = await loadTrackedImage(config.src);
+  return {
+    image,
+    roadOverlap: config.roadOverlap,
+  };
+}
+
 export async function loadGameAssets(onProgress = () => {}) {
   const totalImages =
     1 +
@@ -28,7 +44,7 @@ export async function loadGameAssets(onProgress = () => {}) {
     ASSET_URLS.obstacles.length +
     1 +
     1 +
-    ASSET_URLS.universities.length +
+    ASSET_URLS.buildings.length +
     ASSET_URLS.teacherSets.reduce((total, set) => total + set.idle.length + set.fun.length, 0);
   let loadedImages = 0;
 
@@ -41,17 +57,17 @@ export async function loadGameAssets(onProgress = () => {}) {
 
   onProgress(0);
 
-  const [background, mobileBackground, road, runnerFrames, runnerLose, obstacles, star, flashlight, universities, teacherSets] =
+  const [background, mobileBackground, road, runnerFrames, runnerLose, obstacles, star, flashlight, buildings, teacherSets] =
     await Promise.all([
       loadTrackedImage(ASSET_URLS.background),
       loadTrackedImage(ASSET_URLS.mobileBackground),
       loadTrackedImage(ASSET_URLS.road),
       Promise.all(ASSET_URLS.runnerFrames.map(loadTrackedImage)),
       loadTrackedImage(ASSET_URLS.runnerLose),
-      Promise.all(ASSET_URLS.obstacles.map(loadTrackedImage)),
+      Promise.all(ASSET_URLS.obstacles.map((obstacle) => loadObstacle(obstacle, loadTrackedImage))),
       loadTrackedImage(ASSET_URLS.star),
       loadTrackedImage(ASSET_URLS.flashlight),
-      Promise.all(ASSET_URLS.universities.map(loadTrackedImage)),
+      Promise.all(ASSET_URLS.buildings.map((building) => loadBuilding(building, loadTrackedImage))),
       Promise.all(ASSET_URLS.teacherSets.map((set) => loadTeacherSet(set, loadTrackedImage))),
     ]);
 
@@ -66,7 +82,7 @@ export async function loadGameAssets(onProgress = () => {}) {
     obstacles,
     star,
     flashlight,
-    universities,
+    buildings,
     teacherSets,
   };
 }

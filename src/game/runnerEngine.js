@@ -20,8 +20,8 @@ const TEACHER_MIN_BOXES = 9;
 const TEACHER_BOX_SPREAD = 5;
 const STAR_MIN_BOXES = 2;
 const STAR_BOX_SPREAD = 3;
-const UNIVERSITY_MIN_BOXES = 14;
-const UNIVERSITY_BOX_SPREAD = 8;
+const BUILDING_MIN_BOXES = 8;
+const BUILDING_BOX_SPREAD = 6;
 const SCENERY_SPEED_FACTOR = 0.78;
 const MAX_VIEW_WIDTH = 2172;
 
@@ -46,8 +46,8 @@ function nextStarTarget() {
   return STAR_MIN_BOXES + Math.floor(Math.random() * STAR_BOX_SPREAD);
 }
 
-function nextUniversityTarget() {
-  return UNIVERSITY_MIN_BOXES + Math.floor(Math.random() * UNIVERSITY_BOX_SPREAD);
+function nextBuildingTarget() {
+  return BUILDING_MIN_BOXES + Math.floor(Math.random() * BUILDING_BOX_SPREAD);
 }
 
 function coverRect(sourceWidth, sourceHeight, targetWidth, targetHeight) {
@@ -60,6 +60,18 @@ function coverRect(sourceWidth, sourceHeight, targetWidth, targetHeight) {
     width,
     height,
   };
+}
+
+function pickWeighted(items) {
+  const totalWeight = items.reduce((total, item) => total + item.weight, 0);
+  let cursor = Math.random() * totalWeight;
+
+  for (const item of items) {
+    cursor -= item.weight;
+    if (cursor <= 0) return item;
+  }
+
+  return items[items.length - 1];
 }
 
 export class RunnerEngine {
@@ -140,8 +152,8 @@ export class RunnerEngine {
     this.nextTeacherAt = nextTeacherTarget();
     this.boxesSinceStar = 0;
     this.nextStarAt = nextStarTarget();
-    this.boxesSinceUniversity = 0;
-    this.nextUniversityAt = nextUniversityTarget();
+    this.boxesSinceBuilding = 0;
+    this.nextBuildingAt = nextBuildingTarget();
     this.invulnerableTimer = 0;
     this.objects = [];
     this.sceneryObjects = [];
@@ -306,11 +318,11 @@ export class RunnerEngine {
       if (spawned) {
         this.boxesSinceTeacher += 1;
         this.boxesSinceStar += 1;
-        this.boxesSinceUniversity += 1;
-        if (this.boxesSinceUniversity >= this.nextUniversityAt) {
-          this.spawnUniversity();
-          this.boxesSinceUniversity = 0;
-          this.nextUniversityAt = nextUniversityTarget();
+        this.boxesSinceBuilding += 1;
+        if (this.boxesSinceBuilding >= this.nextBuildingAt) {
+          this.spawnBuilding();
+          this.boxesSinceBuilding = 0;
+          this.nextBuildingAt = nextBuildingTarget();
         }
       }
     }
@@ -321,12 +333,13 @@ export class RunnerEngine {
   spawnObstacle() {
     if (!this.canSpawnAt(this.viewWidth + 80, MIN_OBJECT_GAP)) return false;
 
-    const variants = this.assets.obstacles.map((image) => {
+    const variants = this.assets.obstacles.map(({ image, weight }) => {
       const targetHeight = Math.min(132, Math.max(58, image.naturalHeight * 0.18));
       const targetWidth = (image.naturalWidth / image.naturalHeight) * targetHeight;
 
       return {
         image,
+        weight,
         width: targetWidth,
         height: targetHeight,
         hitbox: {
@@ -337,7 +350,7 @@ export class RunnerEngine {
         },
       };
     });
-    const variant = variants[Math.floor(Math.random() * variants.length)];
+    const variant = pickWeighted(variants);
 
     this.objects.push({
       type: 'obstacle',
@@ -413,7 +426,8 @@ export class RunnerEngine {
     this.sceneryObjects = [];
     this.addLamp(86);
     this.addLamp(650);
-    this.addUniversity(1020);
+    this.addBuilding(1020);
+    this.addBuilding(1520);
   }
 
   spawnLamp() {
@@ -439,23 +453,24 @@ export class RunnerEngine {
     });
   }
 
-  spawnUniversity() {
+  spawnBuilding() {
     const x = this.viewWidth + 220 + Math.random() * 240;
     if (!this.canSpawnSceneryAt(x, 520)) return false;
 
-    this.addUniversity(x);
+    this.addBuilding(x);
     return true;
   }
 
-  addUniversity(x) {
-    const image = this.assets.universities[Math.floor(Math.random() * this.assets.universities.length)];
+  addBuilding(x) {
+    const building = this.assets.buildings[Math.floor(Math.random() * this.assets.buildings.length)];
+    const { image } = building;
     const height = Math.min(285, Math.max(190, image.naturalHeight * 0.46));
     const width = (image.naturalWidth / image.naturalHeight) * height;
 
     this.sceneryObjects.push({
-      type: 'university',
+      type: 'building',
       x,
-      y: ROAD_TOP - height + 24,
+      y: ROAD_TOP - height + building.roadOverlap,
       width,
       height,
       image,

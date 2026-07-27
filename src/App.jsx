@@ -57,7 +57,6 @@ export default function App() {
   const [damagedHeartIndex, setDamagedHeartIndex] = useState(-1);
   const [authReady, setAuthReady] = useState(false);
   const [telegramSession, setTelegramSession] = useState(null);
-  const [authError, setAuthError] = useState('');
   const [profile, setProfile] = useState(null);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [profileInput, setProfileInput] = useState({ nickname: '', telegram: '' });
@@ -96,7 +95,6 @@ export default function App() {
         setTelegramSession(null);
         setProfile(null);
         setProfileInput({ nickname: '', telegram: getTelegramUser()?.username || '' });
-        setAuthError(error.message || 'Не получилось войти через Telegram.');
         setAuthReady(true);
       })
       .finally(() => {
@@ -408,7 +406,7 @@ export default function App() {
                   <img
                     key={index}
                     className={damaged ? 'heart-sprite damaged' : 'heart-sprite'}
-                    src={active ? '/assets/true-heart.png' : '/assets/false-heart.png'}
+                    src={active ? '/assets/optimized/interface/true-heart.webp' : '/assets/optimized/interface/false-heart.webp'}
                     alt=""
                     aria-hidden="true"
                   />
@@ -417,7 +415,7 @@ export default function App() {
             </span>
 
             <span className="star-counter" aria-label={`Звёзды: ${hud.stars}`}>
-              <img src="/assets/star-counter.png" alt="" aria-hidden="true" />
+              <img src="/assets/optimized/interface/star-counter.webp" alt="" aria-hidden="true" />
               <span>x</span>
               <strong>{formatScore(hud.stars, 2)}</strong>
             </span>
@@ -466,25 +464,22 @@ export default function App() {
 
         {screen === 'menu' && hud.ready && (
           <div className="menu-overlay">
-            <img className="game-logo" src="/assets/optimized/logo.webp" alt="Побег студентов" />
+            <img className="game-logo" src="/assets/optimized/interface/logo.webp" alt="Побег студентов" />
             <div className="menu-actions">
               <button type="button" className="game-button primary" onClick={startGame}>
-                <span className="button-icon play-mark" />
                 Играть
               </button>
               <button type="button" className="game-button" onClick={showSettings}>
-                <span className="button-icon gear-mark" />
                 Настройки
               </button>
               <button type="button" className="game-button" onClick={showRecords}>
-                <span className="button-icon records-mark" />
                 Рекорды
               </button>
             </div>
             <p className="menu-credit">
-              Design and web-site by{' '}
+              Design and game by{' '}
               <a href="https://lnsnostylist.ru/" target="_blank" rel="noreferrer">
-                lnsnostylist
+                @lnsnostylist
               </a>
             </p>
           </div>
@@ -634,9 +629,13 @@ export default function App() {
         {hud.ready && authReady && !telegramSession && (
           <div className="center-overlay name-overlay">
             <div className="modal-panel name-panel auth-panel">
-              <h1>Telegram</h1>
-              <p className="auth-copy">Откройте игру в Telegram Mini App, чтобы привязать аккаунт.</p>
-              {authError && <p className="form-error">{authError}</p>}
+              <h1>Упс..</h1>
+              <p className="auth-copy">
+                Извините, игра доступна только в Telegram Mini App. Попробуйте войти с помощью бота{' '}
+                <a href="https://t.me/pobeg_studentov_bot" target="_blank" rel="noreferrer">
+                  @pobeg_studentov_bot
+                </a>
+              </p>
             </div>
           </div>
         )}

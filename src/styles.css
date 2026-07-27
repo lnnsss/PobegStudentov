@@ -787,6 +787,16 @@ button {
   line-height: 1.25;
 }
 
+.auth-copy a {
+  color: #1778d7;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.auth-copy a:hover {
+  color: #0d54a7;
+}
+
 .modal-panel .link-button {
   min-width: 0;
   min-height: 0;
