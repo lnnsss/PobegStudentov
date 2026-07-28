@@ -23,6 +23,7 @@ async function loadObstacle(config, loadTrackedImage) {
   return {
     image,
     weight: config.weight,
+    scale: config.scale || 1,
   };
 }
 

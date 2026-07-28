@@ -23,6 +23,7 @@ const STAR_BOX_SPREAD = 3;
 const BUILDING_MIN_BOXES = 8;
 const BUILDING_BOX_SPREAD = 6;
 const SCENERY_SPEED_FACTOR = 0.78;
+const SCENERY_EDGE_GAP = 52;
 const MAX_VIEW_WIDTH = 2172;
 
 function rectsIntersect(a, b) {
@@ -333,8 +334,8 @@ export class RunnerEngine {
   spawnObstacle() {
     if (!this.canSpawnAt(this.viewWidth + 80, MIN_OBJECT_GAP)) return false;
 
-    const variants = this.assets.obstacles.map(({ image, weight }) => {
-      const targetHeight = Math.min(132, Math.max(58, image.naturalHeight * 0.18));
+    const variants = this.assets.obstacles.map(({ image, weight, scale }) => {
+      const targetHeight = Math.min(132, Math.max(58, image.naturalHeight * 0.18)) * scale;
       const targetWidth = (image.naturalWidth / image.naturalHeight) * targetHeight;
 
       return {
@@ -421,6 +422,21 @@ export class RunnerEngine {
     return this.sceneryObjects.every((object) => Math.abs(object.x - x) >= minGap);
   }
 
+  getSeparatedSceneryX(x, width, minGap = SCENERY_EDGE_GAP) {
+    let nextX = x;
+
+    for (let attempt = 0; attempt < this.sceneryObjects.length + 2; attempt += 1) {
+      const overlap = this.sceneryObjects.find(
+        (object) => nextX < object.x + object.width + minGap && nextX + width + minGap > object.x,
+      );
+      if (!overlap) return nextX;
+
+      nextX = overlap.x + overlap.width + minGap;
+    }
+
+    return nextX;
+  }
+
   seedScenery() {
     if (!this.assets) return;
     this.sceneryObjects = [];
@@ -466,10 +482,11 @@ export class RunnerEngine {
     const { image } = building;
     const height = Math.min(285, Math.max(190, image.naturalHeight * 0.46));
     const width = (image.naturalWidth / image.naturalHeight) * height;
+    const separatedX = this.getSeparatedSceneryX(x, width);
 
     this.sceneryObjects.push({
       type: 'building',
-      x,
+      x: separatedX,
       y: ROAD_TOP - height + building.roadOverlap,
       width,
       height,
