@@ -20,6 +20,11 @@ const TEACHER_MIN_BOXES = 9;
 const TEACHER_BOX_SPREAD = 5;
 const STAR_MIN_BOXES = 2;
 const STAR_BOX_SPREAD = 3;
+const PROJECT_MIN_BOXES = 5;
+const PROJECT_BOX_SPREAD = 5;
+const PROJECT_REVEAL_DURATION = 5;
+const PROJECT_REVEAL_SLIDE_TIME = 0.55;
+const PROJECT_REVEAL_FRAME_TIME = 0.32;
 const BUILDING_MIN_BOXES = 8;
 const BUILDING_BOX_SPREAD = 6;
 const SCENERY_SPEED_FACTOR = 0.78;
@@ -45,6 +50,10 @@ function nextTeacherTarget() {
 
 function nextStarTarget() {
   return STAR_MIN_BOXES + Math.floor(Math.random() * STAR_BOX_SPREAD);
+}
+
+function nextProjectTarget() {
+  return PROJECT_MIN_BOXES + Math.floor(Math.random() * PROJECT_BOX_SPREAD);
 }
 
 function nextBuildingTarget() {
@@ -153,6 +162,8 @@ export class RunnerEngine {
     this.nextTeacherAt = nextTeacherTarget();
     this.boxesSinceStar = 0;
     this.nextStarAt = nextStarTarget();
+    this.boxesSinceProject = 0;
+    this.nextProjectAt = nextProjectTarget();
     this.boxesSinceBuilding = 0;
     this.nextBuildingAt = nextBuildingTarget();
     this.invulnerableTimer = 0;
@@ -164,6 +175,7 @@ export class RunnerEngine {
     this.frameIndex = 0;
     this.lastTime = 0;
     this.recordAnnounced = false;
+    this.projectReveal = null;
   }
 
   setBestOwner(ownerId) {
@@ -191,7 +203,7 @@ export class RunnerEngine {
   }
 
   jump() {
-    if (this.paused || !this.running) return;
+    if (this.paused || this.projectReveal || !this.running) return;
     if (this.gameOver) {
       this.restart();
       return;
@@ -205,12 +217,12 @@ export class RunnerEngine {
   }
 
   togglePause() {
-    if (this.gameOver || !this.running) return;
+    if (this.gameOver || this.projectReveal || !this.running) return;
     this.setPaused(!this.paused);
   }
 
   setPaused(paused) {
-    if (this.gameOver || !this.running) return;
+    if (this.gameOver || this.projectReveal || !this.running) return;
     if (this.paused === paused) return;
     this.paused = paused;
     this.lastTime = 0;
@@ -223,7 +235,9 @@ export class RunnerEngine {
     const delta = this.lastTime ? Math.min((time - this.lastTime) / 1000, 0.033) : 0;
     this.lastTime = time;
 
-    if (this.assets && this.running && !this.paused && !this.gameOver) {
+    if (this.assets && this.projectReveal) {
+      this.updateProjectReveal(delta);
+    } else if (this.assets && this.running && !this.paused && !this.gameOver) {
       this.update(delta);
     } else if (this.assets && this.gameOver && !this.paused) {
       this.updateAnimation(delta);
@@ -270,6 +284,14 @@ export class RunnerEngine {
     }
   }
 
+  updateProjectReveal(delta) {
+    this.projectReveal.elapsed += delta;
+    if (this.projectReveal.elapsed >= PROJECT_REVEAL_DURATION) {
+      this.projectReveal = null;
+      this.lastTime = 0;
+    }
+  }
+
   updateObjects(delta) {
     this.spawnTimer -= delta;
     this.invulnerableTimer = Math.max(0, this.invulnerableTimer - delta);
@@ -299,6 +321,12 @@ export class RunnerEngine {
   }
 
   spawnNextObject() {
+    if (this.boxesSinceProject >= this.nextProjectAt && this.spawnProject()) {
+      this.boxesSinceProject = 0;
+      this.nextProjectAt = nextProjectTarget();
+      return true;
+    }
+
     if (this.boxesSinceStar >= this.nextStarAt && this.spawnStar()) {
       this.boxesSinceStar = 0;
       this.nextStarAt = nextStarTarget();
@@ -319,6 +347,7 @@ export class RunnerEngine {
       if (spawned) {
         this.boxesSinceTeacher += 1;
         this.boxesSinceStar += 1;
+        this.boxesSinceProject += 1;
         this.boxesSinceBuilding += 1;
         if (this.boxesSinceBuilding >= this.nextBuildingAt) {
           this.spawnBuilding();
@@ -414,6 +443,30 @@ export class RunnerEngine {
     return true;
   }
 
+  spawnProject() {
+    if (!this.assets.projects.length) return false;
+
+    const x = this.viewWidth + 300 + Math.random() * 320;
+    if (!this.canSpawnAt(x, MIN_OBJECT_GAP + 120)) return false;
+
+    const project = this.assets.projects[Math.floor(Math.random() * this.assets.projects.length)];
+    const arcSlots = [GROUND_Y - 230, GROUND_Y - 282, GROUND_Y - 166];
+
+    this.objects.push({
+      type: 'project',
+      project,
+      x,
+      y: arcSlots[Math.floor(Math.random() * arcSlots.length)],
+      width: 74,
+      height: 74,
+      image: project.logo,
+      hitbox: { x: -18, y: -18, width: 110, height: 110 },
+      bob: Math.random() * Math.PI * 2,
+    });
+
+    return true;
+  }
+
   canSpawnAt(x, minGap) {
     return this.objects.every((object) => Math.abs(object.x - x) >= minGap);
   }
@@ -443,7 +496,6 @@ export class RunnerEngine {
     this.addLamp(86);
     this.addLamp(650);
     this.addBuilding(1020);
-    this.addBuilding(1520);
   }
 
   spawnLamp() {
@@ -516,6 +568,10 @@ export class RunnerEngine {
         object.collected = true;
         this.stars += 1;
         this.emit('star');
+      } else if (object.type === 'project') {
+        object.collected = true;
+        this.startProjectReveal(object.project);
+        this.emit('project', { projectId: object.project.id });
       } else if (object.type === 'teacher') {
         object.hit = true;
         this.emit('death');
@@ -533,6 +589,13 @@ export class RunnerEngine {
         }
       }
     }
+  }
+
+  startProjectReveal(project) {
+    this.projectReveal = {
+      project,
+      elapsed: 0,
+    };
   }
 
   endRun() {
@@ -573,6 +636,7 @@ export class RunnerEngine {
     this.drawRoad(ctx);
     this.drawObjects(ctx);
     this.drawPlayer(ctx);
+    this.drawProjectReveal(ctx);
   }
 
   drawBackground(ctx) {
@@ -600,7 +664,9 @@ export class RunnerEngine {
 
   drawObjects(ctx) {
     for (const object of this.objects) {
-      const y = object.type === 'star' ? object.y + Math.sin(performance.now() / 180 + object.bob) * 7 : object.y;
+      const y = object.type === 'star' || object.type === 'project'
+        ? object.y + Math.sin(performance.now() / 180 + object.bob) * 7
+        : object.y;
       const teacherFrames =
         object.type === 'teacher' ? (object.hit ? object.funFrames : object.idleFrames) : null;
       const image = teacherFrames ? teacherFrames[this.frameIndex % teacherFrames.length] : object.image;
@@ -623,6 +689,27 @@ export class RunnerEngine {
 
     const frame = this.assets.runnerFrames[this.frameIndex];
     ctx.drawImage(frame, this.player.x, this.player.y, this.player.width, this.player.height);
+  }
+
+  drawProjectReveal(ctx) {
+    if (!this.projectReveal) return;
+
+    const { project, elapsed } = this.projectReveal;
+    const frameIndex = Math.min(project.frames.length - 1, Math.floor(elapsed / PROJECT_REVEAL_FRAME_TIME));
+    const frame = project.frames[frameIndex];
+    const slideProgress = Math.min(1, elapsed / PROJECT_REVEAL_SLIDE_TIME);
+    const easedSlide = 1 - (1 - slideProgress) ** 3;
+    const targetHeight = Math.min(520, LOGICAL_HEIGHT * 0.72);
+    const targetWidth = (frame.naturalWidth / frame.naturalHeight) * targetHeight;
+    const x = this.viewWidth - targetWidth - Math.max(26, this.viewWidth * 0.035);
+    const y = LOGICAL_HEIGHT - targetHeight + targetHeight * (1 - easedSlide);
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(3, 12, 25, 0.58)';
+    ctx.fillRect(0, 0, this.viewWidth, LOGICAL_HEIGHT);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(frame, x, y, targetWidth, targetHeight);
+    ctx.restore();
   }
 
   get visualSpeed() {

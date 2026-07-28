@@ -200,6 +200,12 @@ class GameAudio {
       });
     }
 
+    if (eventName === 'project') {
+      [660, 880, 1175, 1568].forEach((note, index) => {
+        this.tone(note, 0.11, { delay: index * 0.07, endFrequency: note * 1.08, type: 'triangle', volume: 0.14 });
+      });
+    }
+
     if (eventName === 'damage') {
       this.noise(0.16, { volume: 0.22 });
       this.tone(170, 0.16, { endFrequency: 86, type: 'sawtooth', volume: 0.18 });

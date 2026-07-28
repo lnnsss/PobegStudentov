@@ -20,6 +20,43 @@ export const ASSET_URLS = {
     { src: '/assets/optimized/obstacles/Скамейка.webp', weight: 1, scale: 0.82 },
   ],
   star: '/assets/optimized/interface/star.webp',
+  projects: [
+    {
+      id: 'studvesna',
+      logo: '/assets/projects/studvesna/logo.png',
+      frames: ['/assets/projects/studvesna/1.png', '/assets/projects/studvesna/2.png', '/assets/projects/studvesna/3.png'],
+    },
+    {
+      id: 'slovoZaNami',
+      logo: '/assets/projects/slovoZaNami/logo.png',
+      frames: ['/assets/projects/slovoZaNami/1.png', '/assets/projects/slovoZaNami/2.png', '/assets/projects/slovoZaNami/3.png'],
+    },
+    {
+      id: 'pervayaLiga',
+      logo: '/assets/projects/pervayaLiga/logo.png',
+      frames: ['/assets/projects/pervayaLiga/1.png', '/assets/projects/pervayaLiga/2.png', '/assets/projects/pervayaLiga/3.png'],
+    },
+    {
+      id: 'dostizhenieGoda',
+      logo: '/assets/projects/dostizhenieGoda/logo.png',
+      frames: ['/assets/projects/dostizhenieGoda/1.png', '/assets/projects/dostizhenieGoda/2.png', '/assets/projects/dostizhenieGoda/3.png'],
+    },
+    {
+      id: 'ligaforum',
+      logo: '/assets/projects/ligaforum/logo.png',
+      frames: ['/assets/projects/ligaforum/1.png', '/assets/projects/ligaforum/2.png', '/assets/projects/ligaforum/3.png'],
+    },
+    {
+      id: 'zhilKonkurs',
+      logo: '/assets/projects/zhilKonkurs/logo.png',
+      frames: ['/assets/projects/zhilKonkurs/1.png', '/assets/projects/zhilKonkurs/2.png', '/assets/projects/zhilKonkurs/3.png'],
+    },
+    {
+      id: 'studentGoda',
+      logo: '/assets/projects/studentGoda/logo.png',
+      frames: ['/assets/projects/studentGoda/1.png', '/assets/projects/studentGoda/2.png', '/assets/projects/studentGoda/3.png'],
+    },
+  ],
   flashlight: '/assets/optimized/building/flashlight.webp',
   buildings: [
     { src: '/assets/optimized/building/univer/иэуп.webp', roadOverlap: 12 },

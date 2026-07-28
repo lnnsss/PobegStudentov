@@ -35,6 +35,19 @@ async function loadBuilding(config, loadTrackedImage) {
   };
 }
 
+async function loadProject(config, loadTrackedImage) {
+  const [logo, frames] = await Promise.all([
+    loadTrackedImage(config.logo),
+    Promise.all(config.frames.map(loadTrackedImage)),
+  ]);
+
+  return {
+    id: config.id,
+    logo,
+    frames,
+  };
+}
+
 export async function loadGameAssets(onProgress = () => {}) {
   const totalImages =
     1 +
@@ -44,6 +57,7 @@ export async function loadGameAssets(onProgress = () => {}) {
     1 +
     ASSET_URLS.obstacles.length +
     1 +
+    ASSET_URLS.projects.reduce((total, project) => total + 1 + project.frames.length, 0) +
     1 +
     ASSET_URLS.buildings.length +
     ASSET_URLS.teacherSets.reduce((total, set) => total + set.idle.length + set.fun.length, 0);
@@ -58,7 +72,7 @@ export async function loadGameAssets(onProgress = () => {}) {
 
   onProgress(0);
 
-  const [background, mobileBackground, road, runnerFrames, runnerLose, obstacles, star, flashlight, buildings, teacherSets] =
+  const [background, mobileBackground, road, runnerFrames, runnerLose, obstacles, star, projects, flashlight, buildings, teacherSets] =
     await Promise.all([
       loadTrackedImage(ASSET_URLS.background),
       loadTrackedImage(ASSET_URLS.mobileBackground),
@@ -67,6 +81,7 @@ export async function loadGameAssets(onProgress = () => {}) {
       loadTrackedImage(ASSET_URLS.runnerLose),
       Promise.all(ASSET_URLS.obstacles.map((obstacle) => loadObstacle(obstacle, loadTrackedImage))),
       loadTrackedImage(ASSET_URLS.star),
+      Promise.all(ASSET_URLS.projects.map((project) => loadProject(project, loadTrackedImage))),
       loadTrackedImage(ASSET_URLS.flashlight),
       Promise.all(ASSET_URLS.buildings.map((building) => loadBuilding(building, loadTrackedImage))),
       Promise.all(ASSET_URLS.teacherSets.map((set) => loadTeacherSet(set, loadTrackedImage))),
@@ -82,6 +97,7 @@ export async function loadGameAssets(onProgress = () => {}) {
     runnerLose,
     obstacles,
     star,
+    projects,
     flashlight,
     buildings,
     teacherSets,
