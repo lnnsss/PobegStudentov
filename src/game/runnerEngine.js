@@ -22,8 +22,10 @@ const TEACHER_MIN_BOXES = 9;
 const TEACHER_BOX_SPREAD = 5;
 const STAR_MIN_BOXES = 2;
 const STAR_BOX_SPREAD = 3;
-const PROJECT_MIN_DISTANCE = 500;
-const PROJECT_DISTANCE_SPREAD = 500;
+const PROJECT_MIN_DISTANCE = 1800;
+const PROJECT_DISTANCE_SPREAD = 1400;
+const PROJECT_LOGO_SIZE = 78;
+const PROJECT_RECENT_LIMIT = 6;
 const PROJECT_REVEAL_SLIDE_TIME = 0.55;
 const PROJECT_REVEAL_FRAME_TIME = 0.44;
 const PROJECT_REVEAL_LOOPS = 2;
@@ -177,6 +179,7 @@ export class RunnerEngine {
     this.lastTime = 0;
     this.recordAnnounced = false;
     this.projectReveal = null;
+    this.recentProjectIds = [];
   }
 
   setBestOwner(ownerId) {
@@ -467,7 +470,7 @@ export class RunnerEngine {
     const x = this.viewWidth + 300 + Math.random() * 320;
     if (!this.canSpawnAt(x, MIN_OBJECT_GAP + 120)) return false;
 
-    const project = this.assets.projects[Math.floor(Math.random() * this.assets.projects.length)];
+    const project = this.pickNextProject();
     const arcSlots = [GROUND_Y - 270, GROUND_Y - 318, GROUND_Y - 230];
 
     this.objects.push({
@@ -475,14 +478,21 @@ export class RunnerEngine {
       project,
       x,
       y: arcSlots[Math.floor(Math.random() * arcSlots.length)],
-      width: 56,
-      height: 56,
+      width: PROJECT_LOGO_SIZE,
+      height: PROJECT_LOGO_SIZE,
       image: project.logo,
-      hitbox: { x: -20, y: -20, width: 96, height: 96 },
+      hitbox: { x: -18, y: -18, width: PROJECT_LOGO_SIZE + 36, height: PROJECT_LOGO_SIZE + 36 },
       bob: Math.random() * Math.PI * 2,
     });
 
     return true;
+  }
+
+  pickNextProject() {
+    const recentIds = new Set(this.recentProjectIds);
+    const availableProjects = this.assets.projects.filter((project) => !recentIds.has(project.id));
+    const projectPool = availableProjects.length ? availableProjects : this.assets.projects;
+    return projectPool[Math.floor(Math.random() * projectPool.length)];
   }
 
   canSpawnAt(x, minGap) {
@@ -610,6 +620,7 @@ export class RunnerEngine {
   }
 
   startProjectReveal(project) {
+    this.recentProjectIds = [project.id, ...this.recentProjectIds.filter((id) => id !== project.id)].slice(0, PROJECT_RECENT_LIMIT);
     this.projectReveal = {
       project,
       elapsed: 0,
