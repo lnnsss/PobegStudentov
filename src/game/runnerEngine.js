@@ -11,6 +11,8 @@ const START_SPEED = 390;
 const MAX_SPEED = 710;
 const VISUAL_SCROLL_FACTOR = 0.68;
 const DAMAGE_INVULNERABLE_TIME = 1.55;
+const RESUME_INVULNERABLE_TIME = 1.35;
+const RESUME_CLEAR_AHEAD = 430;
 const PLAYER_BLINK_INTERVAL = 0.16;
 const STARTING_LIVES = 3;
 const MAX_JUMPS = 2;
@@ -20,11 +22,11 @@ const TEACHER_MIN_BOXES = 9;
 const TEACHER_BOX_SPREAD = 5;
 const STAR_MIN_BOXES = 2;
 const STAR_BOX_SPREAD = 3;
-const PROJECT_MIN_BOXES = 5;
-const PROJECT_BOX_SPREAD = 5;
-const PROJECT_REVEAL_DURATION = 5;
+const PROJECT_MIN_DISTANCE = 500;
+const PROJECT_DISTANCE_SPREAD = 500;
 const PROJECT_REVEAL_SLIDE_TIME = 0.55;
-const PROJECT_REVEAL_FRAME_TIME = 0.32;
+const PROJECT_REVEAL_FRAME_TIME = 0.44;
+const PROJECT_REVEAL_LOOPS = 2;
 const BUILDING_MIN_BOXES = 8;
 const BUILDING_BOX_SPREAD = 6;
 const SCENERY_SPEED_FACTOR = 0.78;
@@ -53,7 +55,7 @@ function nextStarTarget() {
 }
 
 function nextProjectTarget() {
-  return PROJECT_MIN_BOXES + Math.floor(Math.random() * PROJECT_BOX_SPREAD);
+  return PROJECT_MIN_DISTANCE + Math.floor(Math.random() * PROJECT_DISTANCE_SPREAD);
 }
 
 function nextBuildingTarget() {
@@ -162,8 +164,7 @@ export class RunnerEngine {
     this.nextTeacherAt = nextTeacherTarget();
     this.boxesSinceStar = 0;
     this.nextStarAt = nextStarTarget();
-    this.boxesSinceProject = 0;
-    this.nextProjectAt = nextProjectTarget();
+    this.nextProjectDistance = nextProjectTarget();
     this.boxesSinceBuilding = 0;
     this.nextBuildingAt = nextBuildingTarget();
     this.invulnerableTimer = 0;
@@ -224,6 +225,7 @@ export class RunnerEngine {
   setPaused(paused) {
     if (this.gameOver || this.projectReveal || !this.running) return;
     if (this.paused === paused) return;
+    if (!paused) this.prepareResume();
     this.paused = paused;
     this.lastTime = 0;
     this.publishHud();
@@ -286,10 +288,28 @@ export class RunnerEngine {
 
   updateProjectReveal(delta) {
     this.projectReveal.elapsed += delta;
-    if (this.projectReveal.elapsed >= PROJECT_REVEAL_DURATION) {
+    if (this.projectReveal.elapsed >= this.getProjectRevealDuration()) {
       this.projectReveal = null;
+      this.prepareResume();
       this.lastTime = 0;
     }
+  }
+
+  getProjectRevealDuration() {
+    const frameCount = this.projectReveal?.project.frames.length || 1;
+    return frameCount * PROJECT_REVEAL_LOOPS * PROJECT_REVEAL_FRAME_TIME + PROJECT_REVEAL_SLIDE_TIME;
+  }
+
+  prepareResume() {
+    if (!this.running || this.gameOver) return;
+
+    const dangerStart = this.player.x - 36;
+    const dangerEnd = this.player.x + RESUME_CLEAR_AHEAD;
+    this.objects = this.objects.filter((object) => {
+      if (object.type !== 'obstacle' && object.type !== 'teacher') return true;
+      return object.x + object.width < dangerStart || object.x > dangerEnd;
+    });
+    this.invulnerableTimer = Math.max(this.invulnerableTimer, RESUME_INVULNERABLE_TIME);
   }
 
   updateObjects(delta) {
@@ -321,9 +341,8 @@ export class RunnerEngine {
   }
 
   spawnNextObject() {
-    if (this.boxesSinceProject >= this.nextProjectAt && this.spawnProject()) {
-      this.boxesSinceProject = 0;
-      this.nextProjectAt = nextProjectTarget();
+    if (this.distance >= this.nextProjectDistance && this.spawnProject()) {
+      this.nextProjectDistance = this.distance + nextProjectTarget();
       return true;
     }
 
@@ -347,7 +366,6 @@ export class RunnerEngine {
       if (spawned) {
         this.boxesSinceTeacher += 1;
         this.boxesSinceStar += 1;
-        this.boxesSinceProject += 1;
         this.boxesSinceBuilding += 1;
         if (this.boxesSinceBuilding >= this.nextBuildingAt) {
           this.spawnBuilding();
@@ -450,17 +468,17 @@ export class RunnerEngine {
     if (!this.canSpawnAt(x, MIN_OBJECT_GAP + 120)) return false;
 
     const project = this.assets.projects[Math.floor(Math.random() * this.assets.projects.length)];
-    const arcSlots = [GROUND_Y - 230, GROUND_Y - 282, GROUND_Y - 166];
+    const arcSlots = [GROUND_Y - 270, GROUND_Y - 318, GROUND_Y - 230];
 
     this.objects.push({
       type: 'project',
       project,
       x,
       y: arcSlots[Math.floor(Math.random() * arcSlots.length)],
-      width: 74,
-      height: 74,
+      width: 56,
+      height: 56,
       image: project.logo,
-      hitbox: { x: -18, y: -18, width: 110, height: 110 },
+      hitbox: { x: -20, y: -20, width: 96, height: 96 },
       bob: Math.random() * Math.PI * 2,
     });
 
@@ -695,7 +713,7 @@ export class RunnerEngine {
     if (!this.projectReveal) return;
 
     const { project, elapsed } = this.projectReveal;
-    const frameIndex = Math.min(project.frames.length - 1, Math.floor(elapsed / PROJECT_REVEAL_FRAME_TIME));
+    const frameIndex = Math.floor(elapsed / PROJECT_REVEAL_FRAME_TIME) % project.frames.length;
     const frame = project.frames[frameIndex];
     const slideProgress = Math.min(1, elapsed / PROJECT_REVEAL_SLIDE_TIME);
     const easedSlide = 1 - (1 - slideProgress) ** 3;
