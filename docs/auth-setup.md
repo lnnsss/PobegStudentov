@@ -9,6 +9,34 @@ The app uses Telegram Mini App identity. The browser client sends raw `window.Te
    - `https://pobeg-studentov.vercel.app`
 3. Keep the bot token private. Do not expose it in Vite env vars.
 
+## Telegram /start webhook
+
+The `telegram-webhook` Edge Function answers `/start` in the bot chat with a short hint:
+
+> Чтобы запустить игру, нажми **«Играть»** слева снизу.  
+> Она работает только внутри Telegram Mini App.
+
+Deploy the function and set the bot secrets:
+
+```sh
+supabase functions deploy telegram-webhook
+supabase secrets set TELEGRAM_BOT_TOKEN=<bot-token> TELEGRAM_WEBHOOK_SECRET=<random-secret>
+```
+
+Connect Telegram to the deployed function:
+
+```sh
+curl "https://api.telegram.org/bot<bot-token>/setWebhook" \
+  -d "url=https://<project-ref>.supabase.co/functions/v1/telegram-webhook" \
+  -d "secret_token=<random-secret>"
+```
+
+For this linked Supabase project, the webhook URL is:
+
+```text
+https://uqwbfujabjfuqojnzxyb.supabase.co/functions/v1/telegram-webhook
+```
+
 ## Supabase
 
 Apply the database migrations, then deploy the Edge Function:
