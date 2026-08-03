@@ -24,6 +24,25 @@ The project is a static Vite app. Recommended Vercel settings:
 - Install command: `npm install`
 - Framework preset: Vite
 
+## Runtime Image Rules
+
+This app should avoid Vercel Image Optimization entirely. Runtime code must load direct static files from `public/assets/optimized` using WebP or AVIF paths such as `/assets/optimized/bg.webp`.
+
+Source PNG files may remain in `public/assets` as originals for future editing, but they must not be referenced by `src`, `href`, metadata, CSS, or game asset config. The Vite build intentionally excludes PNG files from `dist`, and `npm run audit:images` fails the build if runtime code introduces PNG/JPEG image references, `next/image`, `/_next/image`, or `/_vercel/image`.
+
+Current Vercel headers cache `/assets/*` and root static image/manifest files for long-lived CDN reuse. If an optimized asset changes, deploy it under the same path only when the filename is content-stable enough for immutable caching; otherwise add a versioned filename and update references.
+
+## Vercel Project Cleanup
+
+Keep `Побег студентов` as the canonical production project. If `Побег студентов 5M4C` points to the same Git repository and does not own a required domain or environment, remove any custom domains from it, disable Git deployments, or delete/archive the duplicate project in Vercel Dashboard.
+
+Before deleting the duplicate, check:
+- assigned domains;
+- Git repository, branch, and root directory;
+- latest production deployment URL;
+- Image Optimization usage by project, if visible in usage analytics;
+- whether any deployment is a Next.js app or serves `/_next/image` / `/_vercel/image`.
+
 Environment variables for the next Supabase step:
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_PUBLISHABLE_KEY`

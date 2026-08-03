@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
+    "prebuild": "npm run audit:images",
+    "audit:images": "node scripts/audit-runtime-images.mjs",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0"
   },
